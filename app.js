@@ -1,46 +1,43 @@
-//Configuring Dotenv to use environment variables from .env file
-require("dotenv").config();
+// Load environment variables
+require('dotenv').config();
 
-//Creating express server
-const express = require("express");
+// Import necessary modules
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
+const userRoutes = require('./routes/userRoutes'); // Import user routes
+
+// Create an Express application
 const app = express();
 
-// Specifying the port
-const port = process.env.PORT || 5000;
+// Middleware
+app.use(express.json()); // Parse JSON bodies
+app.use(cors()); // Enable CORS
+app.use(helmet()); // Set security-related HTTP headers
+app.use(cookieParser()); // Parse cookies
 
-//Using Express.JSON
-app.use(express.json());
-
-// CORS Handler
-const cors = require("cors");
-app.use(cors());
-
-// Disabling the X-Powered-By header
-app.disable("x-powered-by");
-
-// use helmet
-const helmet = require("helmet");
-app.use(helmet());
-
-const rateLimit = require("express-rate-limit");
-
+// Rate limiting middleware
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per window
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per window
 });
-
 app.use(limiter);
 
+// Use user routes
+app.use('/api/users', userRoutes); // Prefix routes with /api/users
 
-const cookieParser = require('cookie-parser');
-app.use(cookieParser());
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ message: 'Something went wrong!' });
+});
 
-// routes
+// Define the port
+const PORT = process.env.PORT || 5000; // Default to 5000 if PORT is not defined
 
-app.use("/user", require('./routes/userRoutes'))
-
-
-//Listening om the port
+// Start the server
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
