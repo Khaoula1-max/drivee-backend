@@ -13,15 +13,83 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model School {
- id String @id @default(auto()) @map("_id") @db.ObjectId
-  name         String
-  phoneNumber  String
-  address      String
-  password     String   
-  description  String
-  verification String?  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+enum UserRole {
+  STUDENT
+  SCHOOL
+  ADMIN
 }
 
+model User {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  firstName   String?
+  lastName    String?
+  email       String        @unique
+  password    String
+  phone       String?
+  dateOfBirth DateTime?
+  adresse     String?
+  role        UserRole      // Utilisation de l'énumération pour le rôle
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  offres      Offre[]       @relation("User Offres")
+  reservations Reservation[] @relation("User Reservations")
+  verifications Verification[] @relation("User Verifications")
+  reviews      Review[]      @relation("User Reviews")
+}
+
+model Offre {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  schoolId    String        @db.ObjectId
+  title       String
+  description String
+  price       Float
+  durationHours Int
+  startDate   DateTime
+  endDate     DateTime
+  school      User          @relation("User Offres", fields: [schoolId], references: [id])
+  reservations Reservation[] @relation("OffreReservations")
+  reviews      Review[]      @relation("OffreReviews")
+  locationId  String        @db.ObjectId
+
+}
+
+model Reservation {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  studentId      String        @db.ObjectId
+  schoolId       String        @db.ObjectId
+  offreId        String        @db.ObjectId
+  reservationDate DateTime      @default(now())
+  startDate      DateTime
+  status          String        // e.g., "pending", "confirmed", "canceled"
+  paymentStatus   String        // e.g., "paid", "unpaid"
+  student        User          @relation("User Reservations", fields: [studentId], references: [id])
+
+  offre          Offre         @relation("OffreReservations", fields: [offreId], references: [id])
+}
+
+model Verification {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String        @db.ObjectId
+  schoolName  String
+  proof       String        // URL ou chemin vers l'image ou le PDF
+  createdAt   DateTime      @default(now())
+  user        User          @relation("User Verifications", fields: [userId], references: [id])
+}
+
+model Review {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String        @db.ObjectId
+  offreId     String        @db.ObjectId
+  review      String
+  createdAt   DateTime      @default(now())
+  user        User          @relation("User Reviews", fields: [userId], references: [id])
+  offre       Offre         @relation("OffreReviews", fields: [offreId], references: [id])
+}
+
+model Location {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  address     String
+  city        String
+  country     String
+
+}
