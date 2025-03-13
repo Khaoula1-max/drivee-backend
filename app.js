@@ -7,7 +7,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
-const userRoutes = require('./routes/userRoutes'); // Import user routes
+const userRoutes = require('./routes/userRoutes'); 
 
 // Create an Express application
 const app = express();
@@ -26,7 +26,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Use user routes
-app.use('/api/users', userRoutes); // Prefix routes with /api/users
+app.use('/app/users', userRoutes); // Prefix routes with /api/users
 
 // Error handling middleware
 app.use((err, req, res, next) => {
