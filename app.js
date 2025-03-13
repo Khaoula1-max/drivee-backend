@@ -26,7 +26,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Use user routes
-app.use('/app/users', userRoutes); // Prefix routes with /api/users
+app.use('/users', userRoutes);// Prefix routes with /api/users
 
 // Error handling middleware
 app.use((err, req, res, next) => {
