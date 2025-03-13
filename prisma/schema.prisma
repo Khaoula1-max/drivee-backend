@@ -4,15 +4,6 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
-datasource db {
-  provider = "mongodb"
-  url      = env("DATABASE_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
-}
-
 enum UserRole {
   STUDENT
   SCHOOL
@@ -20,76 +11,77 @@ enum UserRole {
 }
 
 model User {
-  id          String        @id @default(auto()) @map("_id") @db.ObjectId
-  firstName   String?
-  lastName    String?
-  email       String        @unique
-  password    String
-  phone       String?
-  dateOfBirth DateTime?
-  adresse     String?
-  role        UserRole      // Utilisation de l'énumération pour le rôle
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  offres      Offre[]       @relation("User Offres")
-  reservations Reservation[] @relation("User Reservations")
-  verifications Verification[] @relation("User Verifications")
-  reviews      Review[]      @relation("User Reviews")
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  firstName     String?
+  lastName      String?
+  email         String        @unique
+  password      String
+  phone         String?
+  dateOfBirth   DateTime?
+  address       String?
+  role          UserRole
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  offres        Offre[]       @relation("UserOffres")
+  reservations  Reservation[] @relation("UserReservations")
+  verifications Verification[]
+  reviews       Review[]
+  schoolReservations Reservation[] @relation("SchoolReservations")
 }
 
 model Offre {
-  id          String        @id @default(auto()) @map("_id") @db.ObjectId
-  schoolId    String        @db.ObjectId
-  title       String
-  description String
-  price       Float
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  schoolId      String        @db.ObjectId
+  title         String
+  description   String
+  price         Float
   durationHours Int
-  startDate   DateTime
-  endDate     DateTime
-  school      User          @relation("User Offres", fields: [schoolId], references: [id])
-  reservations Reservation[] @relation("OffreReservations")
-  reviews      Review[]      @relation("OffreReviews")
-  locationId  String        @db.ObjectId
-
+  startDate     DateTime
+  endDate       DateTime
+  school        User          @relation("UserOffres", fields: [schoolId], references: [id])
+  reservations  Reservation[]
+  reviews       Review[]
+  locationId    String        @db.ObjectId
+  location      Location      @relation(fields: [locationId], references: [id])
 }
 
 model Reservation {
-  id              String        @id @default(auto()) @map("_id") @db.ObjectId
-  studentId      String        @db.ObjectId
-  schoolId       String        @db.ObjectId
-  offreId        String        @db.ObjectId
-  reservationDate DateTime      @default(now())
-  startDate      DateTime
-  status          String        // e.g., "pending", "confirmed", "canceled"
-  paymentStatus   String        // e.g., "paid", "unpaid"
-  student        User          @relation("User Reservations", fields: [studentId], references: [id])
-
-  offre          Offre         @relation("OffreReservations", fields: [offreId], references: [id])
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId       String   @db.ObjectId
+  schoolId        String   @db.ObjectId
+  offreId         String   @db.ObjectId
+  reservationDate DateTime @default(now())
+  startDate       DateTime
+  status          String   // e.g., "pending", "confirmed", "canceled"
+  paymentStatus   String   // e.g., "paid", "unpaid"
+  student         User     @relation("UserReservations", fields: [studentId], references: [id])
+  school          User     @relation("SchoolReservations", fields: [schoolId], references: [id])
+  offre           Offre    @relation(fields: [offreId], references: [id])
 }
 
 model Verification {
-  id          String        @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String        @db.ObjectId
-  schoolName  String
-  proof       String        // URL ou chemin vers l'image ou le PDF
-  createdAt   DateTime      @default(now())
-  user        User          @relation("User Verifications", fields: [userId], references: [id])
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  schoolName String
+  proof      String   // URL or path to the image or PDF
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
 }
 
 model Review {
-  id          String        @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String        @db.ObjectId
-  offreId     String        @db.ObjectId
-  review      String
-  createdAt   DateTime      @default(now())
-  user        User          @relation("User Reviews", fields: [userId], references: [id])
-  offre       Offre         @relation("OffreReviews", fields: [offreId], references: [id])
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  offreId   String   @db.ObjectId
+  review    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  offre     Offre    @relation(fields: [offreId], references: [id])
 }
 
 model Location {
-  id          String        @id @default(auto()) @map("_id") @db.ObjectId
-  address     String
-  city        String
-  country     String
-
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  address String
+  city    String
+  country String
+  offres  Offre[]
 }
