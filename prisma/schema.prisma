@@ -92,3 +92,13 @@ model Location {
   country String
   offres  Offre[]
 }
+model Payment {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  amount      Float    // Montant du paiement
+  paymentDate DateTime @default(now()) // Date du paiement
+  status      String   // Statut du paiement (ex: "completed", "pending", "failed")
+  method      String   // Méthode de paiement (ex: "credit_card", "paypal", etc.)
+  createdAt   DateTime @default(now())
+ 
+}
