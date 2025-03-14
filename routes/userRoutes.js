@@ -1,6 +1,6 @@
 const express = require('express');
-const { signUp, login } = require('../controllers/userControllers');
-const authenticateJWT = require('../middlewares/authMiddleware');
+const { signUp, login, updateUser , deleteUser  } = require('../controllers/userControllers');
+const authenticateJWT = require('../middlewares/authMiddleware'); // Middleware pour vérifier le token
 const router = express.Router();
 
 // Route pour l'inscription
@@ -13,5 +13,11 @@ router.post('/login', login);
 router.get('/me', authenticateJWT, (req, res) => {
     res.json(req.user); // Retourner les informations de l'utilisateur
 });
+
+// Route pour mettre à jour un utilisateur (protégée)
+router.put('/:id', authenticateJWT, updateUser );
+
+// Route pour supprimer un utilisateur (protégée)
+router.delete('/:id', authenticateJWT, deleteUser );
 
 module.exports = router;
