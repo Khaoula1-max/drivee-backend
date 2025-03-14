@@ -1,6 +1,6 @@
 const express = require('express');
 const { signUp, login, updateUser , deleteUser  } = require('../controllers/userControllers');
-const authenticateJWT = require('../middlewares/authMiddleware'); // Middleware pour vérifier le token
+const authenticateJWT = require('../middlewares/authMiddleware');
 const router = express.Router();
 
 // Route pour l'inscription
@@ -11,7 +11,7 @@ router.post('/login', login);
 
 // Route protégée pour récupérer les informations de l'utilisateur
 router.get('/me', authenticateJWT, (req, res) => {
-    res.json(req.user); // Retourner les informations de l'utilisateur
+    res.json(req.user);
 });
 
 // Route pour mettre à jour un utilisateur (protégée)
