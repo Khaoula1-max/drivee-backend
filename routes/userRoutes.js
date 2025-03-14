@@ -1,5 +1,5 @@
 const express = require('express');
-const { signUp, login, updateUser , deleteUser  } = require('../controllers/userControllers');
+const { signUp, login, logout, updateUser , deleteUser  } = require('../controllers/userControllers');
 const authenticateJWT = require('../middlewares/authMiddleware');
 const router = express.Router();
 
@@ -8,6 +8,9 @@ router.post('/signup', signUp);
 
 // Route pour la connexion
 router.post('/login', login);
+
+// Route pour la déconnexion
+router.post('/logout', authenticateJWT, logout); // Ajout de la route de déconnexion
 
 // Route protégée pour récupérer les informations de l'utilisateur
 router.get('/me', authenticateJWT, (req, res) => {

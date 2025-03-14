@@ -73,6 +73,14 @@ exports.login = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+// Déconnexion d'un utilisateur
+exports.logout = (req, res) => {
+    res.clearCookie('access_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+    });
+    res.status(200).json({ message: 'Logout successful' });
+};
 
 // Mettre à jour un utilisateur
 exports.updateUser  = async (req, res) => {
