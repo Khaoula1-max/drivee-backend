@@ -5,7 +5,8 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
-// Configure nodemailer
+
+    // Configure nodemailer
 const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
@@ -51,39 +52,38 @@ exports.forgotPassword = async (req, res) => {
     }
 };
 
-    // Réinitialiser le mot de passe
-    exports.resetPassword = async (req, res) => {
-        const { token, newPassword } = req.body;
+// Réinitialiser le mot de passe
+exports.resetPassword = async (req, res) => {
+    const { token, newPassword } = req.body;
 
-        if (!token || !newPassword) {
-            return res.status(400).json({ message: 'Le token et le nouveau mot de passe sont requis' });
+    if (!token || !newPassword) {
+        return res.status(400).json({ message: 'Le token et le nouveau mot de passe sont requis' });
+    }
+
+    try {
+        const user = await prisma.user.findUnique({ where: { resetToken: token } });
+        if (!user) {
+            return res.status(404).json({ message: 'Token invalide ou expiré' });
         }
 
-        try {
-            const user = await prisma.user.findUnique({ where: { resetToken: token } });
-            if (!user) {
-                return res.status(404).json({ message: 'Token invalide ou expiré' });
-            }
+        // Hacher le nouveau mot de passe
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-            // Hacher le nouveau mot de passe
-            const hashedPassword = await bcrypt.hash(newPassword, 10);
+        // Mettre à jour le mot de passe de l'utilisateur et effacer le token de réinitialisation
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                password: hashedPassword,
+                resetToken: null, // Effacer le token de réinitialisation
+            },
+        });
 
-            // Mettre à jour le mot de passe de l'utilisateur et effacer le token de réinitialisation
-            await prisma.user.update({
-                where: { id: user.id },
-                data: {
-                    password: hashedPassword,
-                    resetToken: null, // Effacer le token de réinitialisation
-                },
-            });
-
-            res.status(200).json({ message: 'Mot de passe réinitialisé avec succès' });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: 'Erreur serveur' });
-        }
-    };
-
+        res.status(200).json({ message: 'Mot de passe réinitialisé avec succès' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
     // Inscription d'un utilisateur
     exports.signUp = async (req, res) => {
         const { firstName, lastName, email, password, phone, dateOfBirth, address, role, driverLicense } = req.body;
