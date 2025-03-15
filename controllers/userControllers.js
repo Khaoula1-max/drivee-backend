@@ -6,7 +6,6 @@
     const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
     // Inscription d'un utilisateur
-
     exports.signUp = async (req, res) => {
         const { firstName, lastName, email, password, phone, dateOfBirth, address, role, driverLicense } = req.body;
 
@@ -29,7 +28,7 @@
                 dateOfBirth,
                 address,
                 role: role || 'USER',
-                driverLicense: driverLicense || 'NO', 
+                driverLicense, 
             },
         });
 
@@ -95,7 +94,7 @@
                 dateOfBirth,
                 address,
                 role,
-                driverLicense, // Update driver's license if provided
+                driverLicense, 
             },
         });
         res.json({ message: 'User  updated successfully', user: updatedUser  });

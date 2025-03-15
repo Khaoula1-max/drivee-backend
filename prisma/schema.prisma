@@ -16,10 +16,7 @@ enum UserRole {
   SCHOOL
   ADMIN
 }
-enum DriverLicense {
-  YES
-  NO
-}
+
 
 model User {
   id            String        @id @default(auto()) @map("_id") @db.ObjectId
@@ -31,7 +28,7 @@ model User {
   dateOfBirth   DateTime?
   address       String?
   role          UserRole
-  driverLicense     DriverLicense  @default(NO) // New field for driver's licens
+  driverLicense   Boolean @default(false) // New field for driver's licens
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   offres        Offre[]       @relation("UserOffres")
