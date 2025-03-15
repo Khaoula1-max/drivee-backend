@@ -8,7 +8,7 @@
     // Inscription d'un utilisateur
 
     exports.signUp = async (req, res) => {
-        const { firstName, lastName, email, password, phone, dateOfBirth, address, role } = req.body;
+        const { firstName, lastName, email, password, phone, dateOfBirth, address, role, driverLicense } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required' });
@@ -29,6 +29,7 @@
                 dateOfBirth,
                 address,
                 role: role || 'USER',
+                driverLicense: driverLicense || 'NO', 
             },
         });
 
@@ -81,7 +82,7 @@
     // Mettre à jour un utilisateur
     exports.updateUser  = async (req, res) => {
         const { id } = req.params;
-    const { firstName, lastName, email, phone, dateOfBirth, address, role } = req.body;
+    const { firstName, lastName, email, phone, dateOfBirth, address, role,  driverLicense } = req.body;
 
     try {
         const updatedUser  = await prisma.user.update({
@@ -94,6 +95,7 @@
                 dateOfBirth,
                 address,
                 role,
+                driverLicense, // Update driver's license if provided
             },
         });
         res.json({ message: 'User  updated successfully', user: updatedUser  });
