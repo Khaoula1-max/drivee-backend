@@ -2,7 +2,7 @@ const express = require('express');
 const { signUp, login, logout, updateUser , deleteUser  } = require('../controllers/userControllers');
 const authenticateJWT = require('../middlewares/authMiddleware');
 const router = express.Router();
-
+                                  
 // Route pour l'inscription
 router.post('/signup', signUp);
 
