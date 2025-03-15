@@ -22,5 +22,10 @@ router.put('/:id', authenticateJWT, updateUser );
 
 // Route pour supprimer un utilisateur (protégée)
 router.delete('/:id', authenticateJWT, deleteUser );
+// Route pour l'oubli de mot de passe
+router.post('/forgot-password', userController.forgotPassword);
+
+// Route pour réinitialiser le mot de passe
+router.post('/reset-password', userController.resetPassword);
 
 module.exports = router;
