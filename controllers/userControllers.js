@@ -6,84 +6,6 @@ const nodemailer = require('nodemailer');
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
-    // Configure nodemailer
-const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-        user: process.env.EMAIL_USER, // Votre adresse e-mail
-        pass: process.env.EMAIL_PASS, // Votre mot de passe d'application
-    },
-});
-
-// Oubli de mot de passe
-exports.forgotPassword = async (req, res) => {
-    const { email } = req.body;
-
-    if (!email) {
-        return res.status(400).json({ message: 'L\'email est requis' });
-    }
-
-    try {
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) {
-            return res.status(404).json({ message: 'Utilisateur non trouvé' });
-        }
-
-        // Générer un token de réinitialisation
-        const resetToken = crypto.randomBytes(32).toString('hex');
-
-        // Enregistrer le token dans l'enregistrement de l'utilisateur (vous pouvez vouloir définir une durée d'expiration)
-        await prisma.user.update({
-            where: { email },
-            data: { resetToken },
-        });
-
-        // Envoyer un e-mail avec le token
-        await transporter.sendMail({
-            to: email,
-            subject: 'Réinitialisation du mot de passe',
-            html: `<p>Vous avez demandé une réinitialisation de mot de passe. Utilisez le token suivant pour réinitialiser votre mot de passe :</p><p><strong>${resetToken}</strong></p>`,
-        });
-
-        res.status(200).json({ message: 'Token de réinitialisation envoyé à votre e-mail' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Erreur serveur' });
-    }
-};
-
-// Réinitialiser le mot de passe
-exports.resetPassword = async (req, res) => {
-    const { token, newPassword } = req.body;
-
-    if (!token || !newPassword) {
-        return res.status(400).json({ message: 'Le token et le nouveau mot de passe sont requis' });
-    }
-
-    try {
-        const user = await prisma.user.findUnique({ where: { resetToken: token } });
-        if (!user) {
-            return res.status(404).json({ message: 'Token invalide ou expiré' });
-        }
-
-        // Hacher le nouveau mot de passe
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-        // Mettre à jour le mot de passe de l'utilisateur et effacer le token de réinitialisation
-        await prisma.user.update({
-            where: { id: user.id },
-            data: {
-                password: hashedPassword,
-                resetToken: null, // Effacer le token de réinitialisation
-            },
-        });
-
-        res.status(200).json({ message: 'Mot de passe réinitialisé avec succès' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Erreur serveur' });
-    }
-};
     // Inscription d'un utilisateur
     exports.signUp = async (req, res) => {
         const { firstName, lastName, email, password, phone, dateOfBirth, address, role, driverLicense } = req.body;
@@ -146,6 +68,88 @@ exports.resetPassword = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
+    }
+};
+
+ // Configure nodemailer
+const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+        user: process.env.EMAIL_USER, // Your email address
+        pass: process.env.EMAIL_PASS, // Your application password
+    },
+});
+
+// Oubli de mot de passe
+exports.forgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: 'L\'email est requis' });
+    }
+
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
+        }
+
+        // Générer un token de réinitialisation
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpiry = Date.now() + 3600000; // 1 hour from now
+
+        // Enregistrer le token et son expiration dans l'enregistrement de l'utilisateur
+        await prisma.user.update({
+            where: { email },
+            data: { resetToken, resetTokenExpiry },
+        });
+
+        // Envoyer un e-mail avec un lien de réinitialisation
+        const resetLink = `https://yourapp.com/reset-password?token=${resetToken}`;
+        await transporter.sendMail({
+            to: email,
+            subject: 'Réinitialisation du mot de passe',
+            html: `<p>Vous avez demandé une réinitialisation de mot de passe. Cliquez sur le lien suivant pour réinitialiser votre mot de passe :</p><p><a href="${resetLink}">Réinitialiser le mot de passe</a></p>`,
+        });
+
+        res.status(200).json({ message: 'Un e-mail de réinitialisation a été envoyé' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+// Réinitialiser le mot de passe
+exports.resetPassword = async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({ message: 'Le token et le nouveau mot de passe sont requis' });
+    }
+
+    try {
+        const user = await prisma.user.findUnique({ where: { resetToken: token } });
+        if (!user || user.resetTokenExpiry < Date.now()) {
+            return res.status(404).json({ message: 'Token invalide ou expiré' });
+        }
+
+        // Hacher le nouveau mot de passe
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Mettre à jour le mot de passe de l'utilisateur et effacer le token de réinitialisation
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                password: hashedPassword,
+                resetToken: null, // Effacer le token de réinitialisation
+                resetTokenExpiry: null, // Effacer l'expiration du token
+            },
+        });
+
+        res.status(200).json({ message: 'Mot de passe réinitialisé avec succès' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
     }
 };
    // Déconnexion d'un utilisateur

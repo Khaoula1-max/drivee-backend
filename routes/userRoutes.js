@@ -1,13 +1,28 @@
 const express = require('express');
-const { signUp, login, logout, updateUser , deleteUser  } = require('../controllers/userControllers');
+const {
+    signUp,
+    login,
+    logout,
+    updateUser ,
+    deleteUser ,
+    forgotPassword,
+    resetPassword
+} = require('../controllers/userControllers'); // Ensure this path is correct
 const authenticateJWT = require('../middlewares/authMiddleware');
+
 const router = express.Router();
-                                  
+
 // Route pour l'inscription
 router.post('/signup', signUp);
 
 // Route pour la connexion
 router.post('/login', login);
+
+// Route pour l'oubli de mot de passe
+router.post('/forgot-password', forgotPassword);
+
+// Route pour réinitialiser le mot de passe
+router.post('/reset-password', resetPassword);
 
 // Route pour la déconnexion
 router.post('/logout', authenticateJWT, logout); // Ajout de la route de déconnexion
@@ -22,10 +37,5 @@ router.put('/:id', authenticateJWT, updateUser );
 
 // Route pour supprimer un utilisateur (protégée)
 router.delete('/:id', authenticateJWT, deleteUser );
-// Route pour l'oubli de mot de passe
-router.post('/forgot-password', userController.forgotPassword);
-
-// Route pour réinitialiser le mot de passe
-router.post('/reset-password', userController.resetPassword);
 
 module.exports = router;
