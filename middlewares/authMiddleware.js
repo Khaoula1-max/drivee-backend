@@ -5,7 +5,7 @@ const authenticateJWT = (req, res, next) => {
 
     if (!token) {
         return res.status(403).json({ message: 'Access denied. No token provided.' }); // Forbidden
-    }
+    } 
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
@@ -15,5 +15,4 @@ const authenticateJWT = (req, res, next) => {
         next(); // Passer au prochain middleware ou route
     });
 };
-
 module.exports = authenticateJWT;
