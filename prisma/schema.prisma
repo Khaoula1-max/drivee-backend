@@ -27,6 +27,7 @@ model User {
   phone         String?
   dateOfBirth   DateTime?
   address       String?
+  
   role          UserRole
   driverLicense   Boolean @default(false) // New field for driver's licens
   createdAt     DateTime      @default(now())
@@ -37,7 +38,14 @@ model User {
   reviews       Review[]
   schoolReservations Reservation[] @relation("SchoolReservations")
 }
+model PasswordResetToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  token      String   @unique
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
 
+}
 model Offre {
   id            String        @id @default(auto()) @map("_id") @db.ObjectId
   schoolId      String        @db.ObjectId
