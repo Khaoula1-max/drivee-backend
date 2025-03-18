@@ -28,10 +28,13 @@
         "jsonwebtoken": "^9.0.2",
         "mongo": "^0.1.0",
         "mongodb": "^6.14.2",
+        "mongoose": "^8.12.1",
+        "morgan": "^1.10.0",
         "nodemailer": "^6.10.0",
         "nodemon": "^3.1.9"
     },
     "devDependencies": {
+        "mongoose": "^6.0.0",
         "prisma": "^6.5.0"
     }
 }
