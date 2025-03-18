@@ -28,8 +28,8 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Use user routes
-app.use('/users', userRoutes); // Prefix routes with /api/users
-app.use('/verification', verificationRoutes); // Change verificationRoutes to verificationRouter
+app.use('/users', userRoutes); 
+app.use('/verification', verificationRoutes); 
 app.use('/reservations', reservationRoutes);
 
 // Error handling middleware
