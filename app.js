@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 const userRoutes = require('./routes/userRoutes');
 const verificationRoutes = require('./routes/verificationRoutes'); // Assurez-vous que le nom correspond
 const reservationRoutes = require('./routes/reservationRoutes'); 
+const offreRouter = require('./routes/offreRoutes');
 
 // Create an Express application
 const app = express();
@@ -31,6 +32,7 @@ app.use(limiter);
 app.use('/users', userRoutes); 
 app.use('/verification', verificationRoutes); 
 app.use('/reservations', reservationRoutes);
+app.use('/offres', offreRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
