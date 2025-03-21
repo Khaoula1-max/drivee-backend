@@ -1,19 +1,26 @@
+
+
 const express = require('express');
-const {
-  createReservation,
-  getAllReservations,
-  getReservationById,
-  updateReservation,
-  deleteReservation,
-} = require('../controllers/reservationController');
-
 const router = express.Router();
+const reservationController = require('../controllers/reservationController');
+const authenticateJWT = require('../middlewares/authMiddleware');
 
-// Routes pour les réservations
-router.post('/', createReservation);
-router.get('/', getAllReservations);
-router.get('/:id', getReservationById);
-router.put('/:id', updateReservation);
-router.delete('/:id', deleteReservation);
+// Utiliser le middleware d'authentification pour toutes les routes de réservation
+router.use(authenticateJWT);
+
+// Route pour créer une nouvelle réservation
+router.post('/reservations', reservationController.createReservation);
+
+// Route pour obtenir toutes les réservations
+router.get('/reservations', reservationController.getAllReservations);
+
+// Route pour obtenir une réservation par ID
+router.get('/reservations/:id', reservationController.getReservationById);
+
+// Route pour mettre à jour une réservation
+router.put('/reservations/:id', reservationController.updateReservation);
+
+// Route pour supprimer une réservation
+router.delete('/reservations/:id', reservationController.deleteReservation);
 
 module.exports = router;

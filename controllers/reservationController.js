@@ -1,3 +1,5 @@
+// controllers/reservationController.js
+
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
@@ -18,6 +20,7 @@ const createReservation = async (req, res) => {
     });
     res.status(201).json(reservation);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Erreur lors de la création de la réservation' });
   }
 };
@@ -28,6 +31,7 @@ const getAllReservations = async (req, res) => {
     const reservations = await prisma.reservation.findMany();
     res.status(200).json(reservations);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Erreur lors de la récupération des réservations' });
   }
 };
@@ -45,10 +49,10 @@ const getReservationById = async (req, res) => {
     }
     res.status(200).json(reservation);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Erreur lors de la récupération de la réservation' });
   }
 };
-
 // Mettre à jour une réservation
 const updateReservation = async (req, res) => {
   const { id } = req.params;
@@ -65,6 +69,7 @@ const updateReservation = async (req, res) => {
     });
     res.status(200).json(reservation);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Erreur lors de la mise à jour de la réservation' });
   }
 };
@@ -77,8 +82,9 @@ const deleteReservation = async (req, res) => {
     await prisma.reservation.delete({
       where: { id },
     });
-    res.status(204).send();
+    res.status(204).send(); // No Content
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Erreur lors de la suppression de la réservation' });
   }
 };

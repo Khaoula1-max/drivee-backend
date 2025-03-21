@@ -1,19 +1,17 @@
 const express = require('express');
-const {
-  createVerification,
-  getAllVerifications,
-  getVerificationById,
-  updateVerification,
-  deleteVerification,
-} = require('../controllers/verificationController');
-
 const router = express.Router();
+const verificationController = require('../controllers/verificationController');
 
-// Routes pour les vérifications
-router.post('/', createVerification);
-router.get('/', getAllVerifications);
-router.get('/:id', getVerificationById);
-router.put('/:id', updateVerification);
-router.delete('/:id', deleteVerification);
+// Create a new verification
+router.post('/', verificationController.createVerification);
+
+// Get all verifications
+router.get('/', verificationController.getAllVerifications);
+
+// Approve a verification
+router.put('/:id', verificationController.approveVerification);
+
+// Reject a verification
+router.delete('/:id', verificationController.rejectVerification);
 
 module.exports = router;

@@ -7,7 +7,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const userRoutes = require('./routes/userRoutes');
-const verificationRoutes = require('./routes/verificationRoutes'); // Assurez-vous que le nom correspond
+const verificationRoutes = require('./routes/verificationRoutes'); ;
 const reservationRoutes = require('./routes/reservationRoutes'); 
 const offreRouter = require('./routes/offreRoutes');
 

@@ -1,88 +1,70 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// controllers/verificationController.js
+
+// Simuler une base de données en mémoire
+let verifications = [];
+let currentId = 1; // Simuler un ID auto-incrémenté
 
 // Créer une nouvelle vérification
-const createVerification = async (req, res) => {
-  const { userId, schoolName, proof } = req.body;
+exports.createVerification = async (req, res) => {
+  const { schoolName, proof } = req.body;
+  const userId = req.user.id; // Récupérer l'ID de l'utilisateur à partir de la requête
 
   try {
-    const verification = await prisma.verification.create({
-      data: {
-        userId,
-        schoolName,
-        proof,
-      },
-    });
-    res.status(201).json(verification);
+    const newVerification = {
+      id: currentId++, 
+      userId,
+      schoolName,
+      proof,
+      approved: null, 
+    };
+    verifications.push(newVerification); // Ajouter à la "base de données"
+    res.status(201).json(newVerification);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Erreur lors de la création de la vérification' });
   }
 };
 
 // Obtenir toutes les vérifications
-const getAllVerifications = async (req, res) => {
+exports.getAllVerifications = async (req, res) => {
   try {
-    const verifications = await prisma.verification.findMany();
     res.status(200).json(verifications);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Erreur lors de la récupération des vérifications' });
   }
 };
 
-// Obtenir une vérification par ID
-const getVerificationById = async (req, res) => {
+// Approuver une vérification
+exports.approveVerification = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const verification = await prisma.verification.findUnique({
-      where: { id },
-    });
+    const verification = verifications.find(v => v.id === parseInt(id));
     if (!verification) {
       return res.status(404).json({ error: 'Vérification non trouvée' });
     }
+    verification.approved = true; // Marquer comme approuvé
     res.status(200).json(verification);
   } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la récupération de la vérification' });
+    console.error(error);
+    res.status(500).json({ error: 'Erreur lors de l\'approbation de la vérification' });
   }
 };
 
-// Mettre à jour une vérification
-const updateVerification = async (req, res) => {
-  const { id } = req.params;
-  const { schoolName, proof } = req.body;
-
-  try {
-    const verification = await prisma.verification.update({
-      where: { id },
-      data: {
-        schoolName,
-        proof,
-      },
-    });
-    res.status(200).json(verification);
-  } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la mise à jour de la vérification' });
-  }
-};
-
-// Supprimer une vérification
-const deleteVerification = async (req, res) => {
+// Rejeter une vérification
+exports.rejectVerification = async (req, res) => {
   const { id } = req.params;
 
   try {
-    await prisma.verification.delete({
-      where: { id },
-    });
-    res.status(204).send();
+    const verification = verifications.find(v => v.id === parseInt(id));
+    if (!verification) {
+      return res.status(404).json({ error: 'Vérification non trouvée' });
+    }
+    verification.approved = false; // Marquer comme rejeté
+    res.status(200).json(verification);
   } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la suppression de la vérification' });
+    console.error(error);
+    res.status(500).json({ error: 'Erreur lors du rejet de la vérification' });
   }
-};
-
-module.exports = {
-  createVerification,
-  getAllVerifications,
-  getVerificationById,
-  updateVerification,
-  deleteVerification,
 };

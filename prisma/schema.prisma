@@ -59,7 +59,7 @@ model Offre {
   reservations  Reservation[]
   reviews       Review[]
   locationId    String        @db.ObjectId
-  location      Location      @relation(fields: [locationId], references: [id])
+  location      Location     @relation(fields: [locationId], references: [id])
 }
 
 model Reservation {

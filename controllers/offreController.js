@@ -1,3 +1,5 @@
+// controllers/offreController.js
+
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
@@ -20,6 +22,7 @@ const createOffre = async (req, res) => {
     });
     res.status(201).json(offre);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Erreur lors de la création de l\'offre' });
   }
 };
@@ -30,6 +33,7 @@ const getAllOffres = async (req, res) => {
     const offres = await prisma.offre.findMany();
     res.status(200).json(offres);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Erreur lors de la récupération des offres' });
   }
 };
@@ -40,13 +44,14 @@ const getOffreById = async (req, res) => {
 
   try {
     const offre = await prisma.offre.findUnique({
-      where: { id },
+      where: { id: parseInt(id) }, // Assurez-vous que l'ID est un nombre
     });
     if (!offre) {
       return res.status(404).json({ error: 'Offre non trouvée' });
     }
     res.status(200).json(offre);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Erreur lors de la récupération de l\'offre' });
   }
 };
@@ -58,7 +63,7 @@ const updateOffre = async (req, res) => {
 
   try {
     const offre = await prisma.offre.update({
-      where: { id },
+      where: { id: parseInt(id) },
       data: {
         title,
         description,
@@ -71,6 +76,7 @@ const updateOffre = async (req, res) => {
     });
     res.status(200).json(offre);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Erreur lors de la mise à jour de l\'offre' });
   }
 };
@@ -81,14 +87,16 @@ const deleteOffre = async (req, res) => {
 
   try {
     await prisma.offre.delete({
-      where: { id },
+      where: { id: parseInt(id) },
     });
-    res.status(204).send();
+    res.status(204).send(); // No Content
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Erreur lors de la suppression de l\'offre' });
   }
 };
 
+// Exporter les fonctions
 module.exports = {
   createOffre,
   getAllOffres,
