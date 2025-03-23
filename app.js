@@ -7,6 +7,10 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const userRoutes = require('./routes/userRoutes');
+const offreRoutes = require('./routes/offreRoutes');
+const reservationRoutes = require('./routes/reservationRoutes');
+
+
 
 
 // Create an Express application
@@ -28,6 +32,8 @@ app.use(limiter);
 
 // Use user routes
 app.use('/users', userRoutes); 
+app.use('/offres', offreRoutes);
+app.use('/reservations', reservationRoutes);
 
 
 // Error handling middleware
