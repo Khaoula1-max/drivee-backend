@@ -7,9 +7,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const userRoutes = require('./routes/userRoutes');
-const verificationRoutes = require('./routes/verificationRoutes'); ;
-const reservationRoutes = require('./routes/reservationRoutes'); 
-const offreRouter = require('./routes/offreRoutes');
+
 
 // Create an Express application
 const app = express();
@@ -30,9 +28,7 @@ app.use(limiter);
 
 // Use user routes
 app.use('/users', userRoutes); 
-app.use('/verification', verificationRoutes); 
-app.use('/reservations', reservationRoutes);
-app.use('/offres', offreRouter);
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {
