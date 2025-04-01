@@ -1,17 +1,13 @@
-// Load environment variables
+
 require('dotenv').config();
-// Import necessary modules
 const express = require('express');
+
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const userRoutes = require('./routes/userRoutes');
 const offreRoutes = require('./routes/offreRoutes');
-const reservationRoutes = require('./routes/reservationRoutes');
-
-
-
 
 // Create an Express application
 const app = express();
@@ -33,7 +29,7 @@ app.use(limiter);
 // Use user routes
 app.use('/users', userRoutes); 
 app.use('/offres', offreRoutes);
-app.use('/reservations', reservationRoutes);
+
 
 
 // Error handling middleware
@@ -44,7 +40,7 @@ app.use((err, req, res, next) => {
 });
 
 // Define the port
-const PORT = process.env.PORT || 5000; // Change to 5001 or any other available port
+const PORT = process.env.PORT || 4091; // Change to 5001 or any other available port
 
 // Start the server
 app.listen(PORT, () => {
