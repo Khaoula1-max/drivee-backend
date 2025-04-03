@@ -14,7 +14,7 @@ const verification = await prisma.verification.create({
       data: {
         userId: req.user.id,
         schoolName,
-        proof, // URL du fichier (ex: uploadé via Multer)
+        proof, 
       },
     });
     res.status(201).json(verification);
