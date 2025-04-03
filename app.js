@@ -8,7 +8,9 @@ const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const userRoutes = require('./routes/userRoutes');
 const offreRoutes = require('./routes/offreRoutes');
-const authMiddleware = require('./middlewares/authMiddleware'); // À ajouter en haut
+const authMiddleware = require('./middlewares/authMiddleware'); 
+const reservationRoutes = require('./routes/reservationRoutes');
+const verificationRoutes = require('./routes/verificationRoutes');
 
 
 
@@ -32,6 +34,8 @@ app.use(limiter);
 // Use user routes
 app.use('/users', userRoutes); 
 app.use('/offres', authMiddleware, offreRoutes);
+app.use('/reservations', authMiddleware, reservationRoutes); 
+app.use('/verifications', authMiddleware, verificationRoutes);
 
 
 
