@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 
 const authenticateJWT = (req, res, next) => {
-    const token = req.cookies.access_token; // Récupérer le token du cookie
+    const token = req.cookies.access_token; 
 
     if (!token) {
         return res.status(403).json({ message: 'Access denied. No token provided.' }); // Forbidden
@@ -9,10 +9,10 @@ const authenticateJWT = (req, res, next) => {
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
-            return res.status(403).json({ message: 'Invalid token.' }); // Forbidden
+            return res.status(403).json({ message: 'Invalid token.' }); 
         }
-        req.user = user; // Ajouter l'utilisateur à la requête
-        next(); // Passer au prochain middleware ou route
+        req.user = user; 
+        next(); 
     });
 };
 module.exports = authenticateJWT;

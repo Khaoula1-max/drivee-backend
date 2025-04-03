@@ -32,7 +32,7 @@ model User {
   driverLicense   Boolean @default(false) // New field for driver's licens
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-  offres        Offre[]       @relation("UserOffres")
+   offres      Offre[] @relation("UserOffres") // Une école a plusieurs offres
   reservations  Reservation[] @relation("UserReservations")
   verifications Verification[]
   reviews       Review[]
@@ -55,7 +55,7 @@ model Offre {
   durationHours Int
   startDate     DateTime
   endDate       DateTime
-  school        User          @relation("UserOffres", fields: [schoolId], references: [id])
+  school User @relation("UserOffres", fields: [schoolId], references: [id]) // Une offre appartient à une école
   reservations  Reservation[]
   reviews       Review[]
   locationId    String        @db.ObjectId
@@ -101,7 +101,7 @@ model Location {
   address String
   city    String
   country String
-  offres  Offre[]
+  offres  Offre[]  
 }
 model Payment {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
