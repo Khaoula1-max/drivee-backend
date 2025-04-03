@@ -8,6 +8,9 @@ const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const userRoutes = require('./routes/userRoutes');
 const offreRoutes = require('./routes/offreRoutes');
+const authMiddleware = require('./middlewares/authMiddleware'); // À ajouter en haut
+
+
 
 // Create an Express application
 const app = express();
@@ -28,7 +31,7 @@ app.use(limiter);
 
 // Use user routes
 app.use('/users', userRoutes); 
-app.use('/offres', offreRoutes);
+app.use('/offres', authMiddleware, offreRoutes);
 
 
 
@@ -38,7 +41,6 @@ app.use((err, req, res, next) => {
     console.error('Error stack:', err.stack); // Log the error stack
     res.status(500).json({ message: 'Something went wrong!', error: err.message }); // Optionally include the error message in the response
 });
-
 // Define the port
 const PORT = process.env.PORT || 5000; 
 
