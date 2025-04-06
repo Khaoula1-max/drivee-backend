@@ -11,6 +11,7 @@ const offreRoutes = require('./routes/offreRoutes');
 const authMiddleware = require('./middlewares/authMiddleware'); 
 const reservationRoutes = require('./routes/reservationRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 
 
 
@@ -36,6 +37,7 @@ app.use('/users', userRoutes);
 app.use('/offres', authMiddleware, offreRoutes);
 app.use('/reservations', authMiddleware, reservationRoutes); 
 app.use('/verifications', authMiddleware, verificationRoutes);
+app.use('/reviews', authMiddleware, reviewRoutes);
 
 
 
