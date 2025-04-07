@@ -6,40 +6,73 @@ const nodemailer = require('nodemailer');
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
-    // Inscription d'un utilisateur
-    exports.signUp = async (req, res) => {
-        const { firstName, lastName, email, password, phone, dateOfBirth, address, role, driverLicense } = req.body;
-
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password are required' });
-    }
-    try {
-        const existingUser  = await prisma.user.findUnique({ where: { email } });
-        if (existingUser ) {
-            return res.status(400).json({ message: 'Email already in use' });
-        }
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser  = await prisma.user.create({
-            data: {
-                firstName,
-                lastName,
-                email,
-                password: hashedPassword,
-                phone,
-                dateOfBirth,
-                address,
-                role: role || 'USER',
-                driverLicense, 
-            },
-        });
-
-        res.status(201).json({ message: 'User  created successfully', user: newUser  });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
-    }
     
-};
+    exports.signUp = async (req, res) => {
+        const { firstName, lastName, email, password, phone, dateOfBirth, address, role } = req.body;
+      
+        // Validation
+        if (!email || !password) {
+          return res.status(400).json({ 
+            success: false,
+            message: 'Email and password are required' 
+          });
+        }
+      
+        try {
+          // Check for existing user
+          const existingUser = await prisma.user.findUnique({ where: { email } });
+          if (existingUser) {
+            return res.status(400).json({ 
+              success: false,
+              message: 'Email already in use' 
+            });
+          }
+      
+          // Hash password
+          const hashedPassword = await bcrypt.hash(password, 10);
+          
+          // Prepare data - only include provided fields
+          const userData = {
+            email,
+            password: hashedPassword,
+            role: role || 'STUDENT',
+            driverLicense: false, // Default value
+            ...(firstName && { firstName }),
+            ...(lastName && { lastName }),
+            ...(phone && { phone }),
+            ...(dateOfBirth && { dateOfBirth: new Date(dateOfBirth) }),
+            ...(address && { address })
+          };
+      
+          // Create user
+          const newUser = await prisma.user.create({ data: userData });
+      
+          // Format response
+          const responseData = {
+            id: newUser.id,
+            email: newUser.email,
+            role: newUser.role,
+            ...(newUser.firstName && { firstName: newUser.firstName }),
+            ...(newUser.lastName && { lastName: newUser.lastName }),
+            ...(newUser.phone && { phone: newUser.phone }),
+            createdAt: newUser.createdAt
+          };
+      
+          res.status(201).json({
+            success: true,
+            message: 'User registered successfully',
+            user: responseData
+          });
+      
+        } catch (error) {
+          console.error('Signup error:', error);
+          res.status(500).json({
+            success: false,
+            message: 'Registration failed',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+          });
+        }
+      };
        // Connexion d'un utilisateur
     exports.login = async (req, res) => {
         const { email, password } = req.body;
