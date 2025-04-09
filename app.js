@@ -23,8 +23,9 @@ app.use(express.json()); // Parse JSON bodies
 app.use(cors({
     origin: 'http://localhost:5173',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  }));
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true 
+}));
 app.use(helmet()); // Set security-related HTTP headers
 app.use(cookieParser()); // Parse cookies
 

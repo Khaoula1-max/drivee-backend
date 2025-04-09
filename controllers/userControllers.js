@@ -137,44 +137,59 @@ exports.signUpLearner = async (req, res) => {
     }
 };
        // Fonction de connexion
-exports.login = async (req, res) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email et mot de passe sont requis' });
-    }
-
-    try {
-        // Recherche de l'utilisateur dans la base de données
-        const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) {
-            return res.status(401).json({ message: 'Email ou mot de passe invalide' });
+       exports.login = async (req, res) => {
+        const { email, password } = req.body;
+      
+        if (!email || !password) {
+          return res.status(400).json({ message: 'Email and password are required' });
         }
-
-        // Vérification du mot de passe
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            return res.status(401).json({ message: 'Email ou mot de passe invalide' });
-        }
-
-        // Création du token JWT pour l'utilisateur
-        const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
-
-        // Stockage du token dans un cookie HTTP
-        res.cookie('access_token', token, {
+      
+        try {
+          
+          const user = await prisma.user.findUnique({ where: { email } });
+          if (!user) {
+            console.log('User not found for email:', email);
+            return res.status(401).json({ message: 'Invalid credentials' });
+          }
+      
+          
+          const isPasswordValid = await bcrypt.compare(password, user.password);
+          if (!isPasswordValid) {
+            console.log('Invalid password for email:', email);
+            return res.status(401).json({ message: 'Invalid credentials' });
+          }
+      
+          
+          const token = jwt.sign(
+            { id: user.id, email: user.email },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+          );
+      
+          
+          res.cookie('access_token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production', // Sécuriser le cookie en production
-            maxAge: 3600000, // Durée de validité du cookie (1 heure)
-        });
-
-        // Réponse de succès
-        res.status(200).json({ message: 'Connexion réussie' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Erreur serveur' });
-    }
-};
-
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 3600000, // 1 hour
+            sameSite: 'strict'
+          });
+      
+          
+          return res.status(200).json({ 
+            message: 'Login successful',
+            user: {
+              id: user.id,
+              email: user.email,
+              
+            }
+          });
+          
+        } catch (error) {
+          console.error('Login error:', error);
+          return res.status(500).json({ message: 'Server error' });
+        }
+      };
+      
 // Fonction pour la réinitialisation du mot de passe (oublie)
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
