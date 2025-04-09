@@ -24,7 +24,6 @@ exports.signUpSchool = async (req, res) => {
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        
         const newSchool = await prisma.user.create({
             data: {
                 firstName,
@@ -34,7 +33,7 @@ exports.signUpSchool = async (req, res) => {
                 phone,
                 address,
                 role: 'SCHOOL',
-                verified: false
+                // verified: false
                 // Remove verified unless it exists in schema
             }
         });
@@ -71,54 +70,68 @@ exports.signUpLearner = async (req, res) => {
     console.log("Received data:", req.body);
     const { firstName, lastName, email, password, phone, dateOfBirth, driverLicense } = req.body;
 
-    // Validation minimale
+    // Enhanced validation
     if (!email || !password) {
         return res.status(400).json({ 
             success: false,
-            message: 'Email et mot de passe sont obligatoires' 
+            message: 'Email and password are required' 
         });
     }
 
     try {
+        // Check if email already exists
+        const existingUser = await prisma.user.findUnique({
+            where: { email }
+        });
+
+        if (existingUser) {
+            return res.status(409).json({
+                success: false,
+                message: 'Email already registered'
+            });
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
-        
+        const licenseBool = driverLicense === true || driverLicense === "true";
         const newLearner = await prisma.user.create({
             data: {
+                firstName: firstName || null,
+                lastName: lastName || null,
                 email,
                 password: hashedPassword,
+                phone: phone || null,
+                dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
                 role: 'STUDENT',
-                verified: true,
-                driverLicense: driverLicense || false,
-                ...(firstName && { firstName }),
-                ...(lastName && { lastName }),
-                ...(phone && { phone }),
-                ...(dateOfBirth && { dateOfBirth: new Date(dateOfBirth) })
+                driverLicense: licenseBool,
+                // verified: true // Auto-verified for students
             }
         });
 
         return res.status(201).json({
             success: true,
-            message: 'Apprenant enregistré avec succès',
+            message: 'Student registered successfully',
             user: {
                 id: newLearner.id,
                 email: newLearner.email,
+                firstName: newLearner.firstName,
+                lastName: newLearner.lastName,
                 hasLicense: newLearner.driverLicense
             }
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Registration error:", error);
         
         if (error.code === 'P2002') {
             return res.status(409).json({
                 success: false,
-                message: 'Email ou numéro de téléphone déjà existant'
+                message: 'Email or phone already exists'
             });
         }
 
-        return res.status(500).json({ 
+        return res.status(500).json({
             success: false,
-            message: 'Erreur lors de l\'inscription',
+            message: 'Registration failed',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
