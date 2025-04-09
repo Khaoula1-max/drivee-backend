@@ -7,72 +7,103 @@ const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
     
-    exports.signUp = async (req, res) => {
-        const { firstName, lastName, email, password, phone, dateOfBirth, address, role } = req.body;
-      
-        // Validation
-        if (!email || !password) {
-          return res.status(400).json({ 
+
+
+// Inscription pour une école de conduite
+exports.signUpSchool = async (req, res) => {
+    const { firstName, lastName, email, password, phone, address } = req.body;
+
+    // Validation minimale
+    if (!email || !password || !firstName || !lastName || !phone || !address) {
+        return res.status(400).json({ 
             success: false,
-            message: 'Email and password are required' 
-          });
-        }
-      
-        try {
-          // Check for existing user
-          const existingUser = await prisma.user.findUnique({ where: { email } });
-          if (existingUser) {
-            return res.status(400).json({ 
-              success: false,
-              message: 'Email already in use' 
-            });
-          }
-      
-          // Hash password
-          const hashedPassword = await bcrypt.hash(password, 10);
-          
-          // Prepare data - only include provided fields
-          const userData = {
-            email,
-            password: hashedPassword,
-            role: role || 'STUDENT',
-            driverLicense: false, // Default value
-            ...(firstName && { firstName }),
-            ...(lastName && { lastName }),
-            ...(phone && { phone }),
-            ...(dateOfBirth && { dateOfBirth: new Date(dateOfBirth) }),
-            ...(address && { address })
-          };
-      
-          // Create user
-          const newUser = await prisma.user.create({ data: userData });
-      
-          // Format response
-          const responseData = {
-            id: newUser.id,
-            email: newUser.email,
-            role: newUser.role,
-            ...(newUser.firstName && { firstName: newUser.firstName }),
-            ...(newUser.lastName && { lastName: newUser.lastName }),
-            ...(newUser.phone && { phone: newUser.phone }),
-            createdAt: newUser.createdAt
-          };
-      
-          res.status(201).json({
+            message: 'Tous les champs sont obligatoires pour les écoles' 
+        });
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        const newSchool = await prisma.user.create({
+            data: {
+                firstName,
+                lastName,
+                email,
+                password: hashedPassword,
+                phone,
+                address,
+                role: 'SCHOOL',
+                verified: false // À vérifier par l'admin
+            }
+        });
+
+        // Retourne seulement les données essentielles
+        res.status(201).json({
             success: true,
-            message: 'User registered successfully',
-            user: responseData
-          });
-      
-        } catch (error) {
-          console.error('Signup error:', error);
-          res.status(500).json({
+            message: 'École enregistrée avec succès - En attente de vérification',
+            user: {
+                id: newSchool.id,
+                email: newSchool.email,
+                name: `${newSchool.firstName} ${newSchool.lastName}`
+            }
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ 
             success: false,
-            message: 'Registration failed',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-          });
-        }
-      };
+            message: 'Erreur lors de l\'inscription' 
+        });
+    }
+};
+
+// Inscription pour un apprenant
+exports.signUpLearner= async (req, res) => {
+    const { firstName, lastName, email, password, phone, dateOfBirth, driverLicense } = req.body;
+
+    // Validation minimale
+    if (!email || !password) {
+        return res.status(400).json({ 
+            success: false,
+            message: 'Email et mot de passe sont obligatoires' 
+        });
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        const newLearner = await prisma.user.create({
+            data: {
+                email,
+                password: hashedPassword,
+                role: 'STUDENT',
+                verified: true, // Auto-validé
+                driverLicense: driverLicense || false,
+                ...(firstName && { firstName }),
+                ...(lastName && { lastName }),
+                ...(phone && { phone }),
+                ...(dateOfBirth && { dateOfBirth: new Date(dateOfBirth) })
+            }
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Apprenant enregistré avec succès',
+            user: {
+                id: newLearner.id,
+                email: newLearner.email,
+                hasLicense: newLearner.driverLicense
+            }
+        }); 
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Erreur lors de l\'inscription' 
+        });
+    }
+};
        // Fonction de connexion
 exports.login = async (req, res) => {
     const { email, password } = req.body;

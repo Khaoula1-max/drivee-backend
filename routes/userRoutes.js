@@ -1,6 +1,7 @@
 const express = require('express');
 const {
-    signUp,
+    signUpSchool,
+    signUpLearner,
     login,
     logout,
     updateUser ,
@@ -13,7 +14,11 @@ const authenticateJWT = require('../middlewares/authMiddleware');
 const router = express.Router();
 
 // Route pour l'inscription
-router.post('/signup', signUp);
+router.post('/signupSchool', signUpSchool);
+
+router.post('/signupLearner', signUpLearner);
+
+
 
 // Route pour la connexion
 router.post('/login', login);
