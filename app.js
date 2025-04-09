@@ -20,7 +20,11 @@ const app = express();
 
 // Middleware
 app.use(express.json()); // Parse JSON bodies
-app.use(cors()); // Enable CORS
+app.use(cors({
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
 app.use(helmet()); // Set security-related HTTP headers
 app.use(cookieParser()); // Parse cookies
 
