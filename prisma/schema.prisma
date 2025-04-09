@@ -55,6 +55,7 @@ model Offre {
   durationHours Int
   startDate     DateTime
   endDate       DateTime
+  Verified Boolean @default(false) 
   school User @relation("UserOffres", fields: [schoolId], references: [id]) // Une offre appartient à une école
   reservations  Reservation[]
   reviews       Review[]
@@ -77,14 +78,15 @@ model Reservation {
 }
 
 model Verification {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId     String   @db.ObjectId
-  schoolName String
-  proof      String   // URL or path to the image or PDF
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id])
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  schoolName  String
+  proof       String
+  status      String   @default("PENDING") // ← Champ critique
+  createdAt   DateTime @default(now())
+  processedAt DateTime?
+  user        User     @relation(fields: [userId], references: [id])
 }
-
 model Review {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   userId    String   @db.ObjectId
