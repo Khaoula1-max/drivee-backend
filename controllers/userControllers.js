@@ -136,62 +136,110 @@ exports.signUpLearner = async (req, res) => {
         });
     }
 };
-// Fonction de connexion
-       exports.login = async (req, res) => {
-        const { email, password } = req.body;
-      
-        if (!email || !password) {
-          console.log('Login attempt with missing credentials');
-          return res.status(400).json({ message: 'Email and password are required' });
+exports.login = async (req, res) => {
+    const { email, password } = req.body;
+
+    // Validation des entrées
+    if (!email || !password) {
+        return res.status(400).json({ 
+            success: false,
+            message: 'Email and password are required',
+            code: 'MISSING_CREDENTIALS'
+        });
+    }
+
+    try {
+        // Recherche de l'utilisateur
+        const user = await prisma.user.findUnique({ 
+            where: { email },
+            select: {
+                id: true,
+                email: true,
+                password: true,
+                role: true,
+                firstName: true,
+                lastName: true
+            }
+        });
+
+        if (!user) {
+            return res.status(401).json({ 
+                success: false,
+                message: 'Invalid credentials',
+                code: 'INVALID_CREDENTIALS'
+            });
         }
-      
-        try {
-          console.log('Login attempt for email:', email);
-          
-          const user = await prisma.user.findUnique({ where: { email } });
-          if (!user) {
-            console.log(' Login failed - user not found:', email);
-            return res.status(401).json({ message: 'Invalid credentials' });
-          }
-      
-          const isPasswordValid = await bcrypt.compare(password, user.password);
-          if (!isPasswordValid) {
-            console.log(' Login failed - invalid password for:', email);
-            return res.status(401).json({ message: 'Invalid credentials' });
-          }
-      
-          const token = jwt.sign(
-            { id: user.id, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' }
-          );
-      
-          res.cookie('access_token', token, {
+
+        // Vérification du mot de passe
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ 
+                success: false,
+                message: 'Invalid credentials',
+                code: 'INVALID_CREDENTIALS'
+            });
+        }
+
+        // Création du token JWT
+        const token = jwt.sign(
+            { 
+                id: user.id, 
+                email: user.email, 
+                role: user.role 
+            }, 
+            JWT_SECRET, 
+            { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+        );
+
+        // Configuration du cookie
+        res.cookie('access_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 3600000,
-            sameSite: 'strict'
-          });
-    
-          // Successful login confirmation
-          console.log(' Login successful for:', email);
+            sameSite: 'strict',
+            maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 3600000,
+            domain: process.env.COOKIE_DOMAIN || 'localhost'
+        });
+        console.log(' Login successful for:', email);
           console.log(' Token issued for user ID:', user.id);
           console.log(' Token expires in 1 hour');
-          
-          return res.status(200).json({ 
+
+        // Réponse avec token et infos utilisateur (sans mot de passe)
+        const userData = {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role
+        };
+
+        return res.status(200).json({
+            success: true,
             message: 'Login successful',
-            user: {
-              id: user.id,
-              email: user.email,
-            }
-          });
-          
-        } catch (error) {
-          console.error(' Login error:', error);
-          return res.status(500).json({ message: 'Server error' });
-        }
-    };
-// Fonction pour la réinitialisation du mot de passe (oublie)
+            token, // Retourne aussi le token dans la réponse
+            user: userData,
+            expiresIn: parseInt(process.env.JWT_EXPIRES_IN || '3600') // en secondes
+        });
+        
+
+    } catch (error) {
+        console.error('Login error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Authentication failed',
+            code: 'AUTH_ERROR',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+ // Configure nodemailer
+ const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+        user: process.env.EMAIL_USER, // Your email address
+        pass: process.env.EMAIL_PASS, // Your application password
+    },
+});
+    // Oubli de mot de passe
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
 
@@ -200,17 +248,16 @@ exports.forgotPassword = async (req, res) => {
     }
 
     try {
-        // Recherche de l'utilisateur dans la base de données
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
 
-        // Génération d'un token de réinitialisation unique
+        // Générer un token de réinitialisation
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetTokenExpiry = new Date(Date.now() + 3600000); // Expiration du token dans 1 heure
+        const resetTokenExpiry = new Date(Date.now() + 3600000); 
 
-        // Enregistrement du token dans la base de données
+        // Enregistrer le token dans la base de données
         await prisma.passwordResetToken.create({
             data: {
                 userId: user.id,
@@ -219,23 +266,21 @@ exports.forgotPassword = async (req, res) => {
             },
         });
 
-        // Envoi d'un email avec le lien de réinitialisation
-        const resetLink = `https://votreapp.com/reset-password?token=${resetToken}`;
+        // Envoyer un e-mail avec un lien de réinitialisation
+        const resetLink = `https://yourapp.com/reset-password?token=${resetToken}`;
         await transporter.sendMail({
             to: email,
             subject: 'Réinitialisation du mot de passe',
             html: `<p>Vous avez demandé une réinitialisation de mot de passe. Cliquez sur le lien suivant pour réinitialiser votre mot de passe :</p><p><a href="${resetLink}">Réinitialiser le mot de passe</a></p>`,
         });
 
-        // Réponse indiquant que l'email a été envoyé
-        res.status(200).json({ message: 'Un email de réinitialisation a été envoyé' });
+        res.status(200).json({ message: 'Un e-mail de réinitialisation a été envoyé' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 };
-
-// Fonction de réinitialisation du mot de passe avec le token
+  // Réinitialiser le mot de passe
 exports.resetPassword = async (req, res) => {
     const { token, newPassword } = req.body;
 
@@ -244,50 +289,69 @@ exports.resetPassword = async (req, res) => {
     }
 
     try {
-        // Vérification de la validité du token
         const resetTokenEntry = await prisma.passwordResetToken.findUnique({ where: { token } });
         if (!resetTokenEntry || resetTokenEntry.expiresAt < new Date()) {
-            return res.status(400).json({ message: 'Token invalide ou expiré' });
+            return res.status(404).json({ message: 'Token invalide ou expiré' });
         }
 
-        // Hachage du nouveau mot de passe
+        // Hacher le nouveau mot de passe
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        // Mise à jour du mot de passe de l'utilisateur
+        // Mettre à jour le mot de passe de l'utilisateur
         await prisma.user.update({
             where: { id: resetTokenEntry.userId },
-            data: { password: hashedPassword },
+            data: {
+                password: hashedPassword,
+            },
         });
 
-        // Suppression du token après utilisation
+        // Supprimer le token de réinitialisation après utilisation
         await prisma.passwordResetToken.delete({
             where: { id: resetTokenEntry.id },
         });
 
-        // Réponse de succès
         res.status(200).json({ message: 'Mot de passe réinitialisé avec succès' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 };
+   // Déconnexion d'un utilisateur
+    exports.logout = (req, res) => {
+        res.clearCookie('access_token', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+        });
+        res.status(200).json({ message: 'Logout successful' });
+    };
 
-// Fonction de déconnexion
-exports.logout = (req, res) => {
-    res.clearCookie('access_token', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Sécurisation du cookie en production
-    });
-    res.status(200).json({ message: 'Déconnexion réussie' });
-};
-
-// Fonction de mise à jour d'un utilisateur
+ // Mettre à jour un utilisateur
 exports.updateUser = async (req, res) => {
     const { id } = req.params;
-    const { firstName, lastName, email, phone, dateOfBirth, address, role, driverLicense } = req.body;
+    const { 
+        firstName, 
+        lastName, 
+        email, 
+        phone, 
+        dateOfBirth, 
+        address, 
+        role,  
+        driverLicense 
+    } = req.body;
+
+    // Validation basique
+    if (!id) {
+        return res.status(400).json({ message: 'User ID is required' });
+    }
 
     try {
-        // Mise à jour des informations de l'utilisateur dans la base de données
+        // Vérifier d'abord si l'utilisateur existe
+        const userExists = await prisma.user.findUnique({ where: { id } });
+        if (!userExists) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Mettre à jour l'utilisateur
         const updatedUser = await prisma.user.update({
             where: { id },
             data: {
@@ -295,37 +359,51 @@ exports.updateUser = async (req, res) => {
                 lastName,
                 email,
                 phone,
-                dateOfBirth,
+                dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
                 address,
                 role,
-                driverLicense,
+                driverLicense, 
             },
         });
-        res.json({ message: 'Utilisateur mis à jour avec succès', user: updatedUser });
-    } catch (error) {
-        console.error(error);
-        if (error.code === 'P2025') {
-            return res.status(404).json({ message: 'Utilisateur non trouvé' });
-        }
-        res.status(500).json({ message: 'Erreur serveur' });
-    }
-};
 
-// Fonction de suppression d'un utilisateur
-exports.deleteUser = async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        // Suppression de l'utilisateur dans la base de données
-        await prisma.user.delete({
-            where: { id },
+        res.status(200).json({ 
+            success: true,
+            message: 'User updated successfully', 
+            user: updatedUser 
         });
-        res.json({ message: 'Utilisateur supprimé avec succès' });
+
+    } catch (error) {
+        console.error('Update user error:', error);
+        
+        if (error.code === 'P2002') {
+            return res.status(409).json({ 
+                message: 'Email or phone number already exists' 
+            });
+        }
+        if (error.code === 'P2025') {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        res.status(500).json({ 
+            message: 'An error occurred while updating the user',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+    // Supprimer un utilisateur
+    exports.deleteUser  = async (req, res) => {
+        const { id } = req.params;
+        
+        try {
+            await prisma.user.delete({
+                where: { id },
+        });
+        res.json({ message: 'User  deleted successfully' });
     } catch (error) {
         console.error(error);
         if (error.code === 'P2025') {
-            return res.status(404).json({ message: 'Utilisateur non trouvé' });
+            return res.status(404).json({ message: 'User  not found' });
         }
-        res.status(500).json({ message: 'Erreur serveur' });
+        res.status(500).json({ message: 'Server error' });
     }
-};
+ };
