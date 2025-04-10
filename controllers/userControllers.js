@@ -199,6 +199,9 @@ exports.login = async (req, res) => {
             maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 3600000,
             domain: process.env.COOKIE_DOMAIN || 'localhost'
         });
+        console.log(' Login successful for:', email);
+          console.log(' Token issued for user ID:', user.id);
+          console.log(' Token expires in 1 hour');
 
         // Réponse avec token et infos utilisateur (sans mot de passe)
         const userData = {
@@ -216,6 +219,7 @@ exports.login = async (req, res) => {
             user: userData,
             expiresIn: parseInt(process.env.JWT_EXPIRES_IN || '3600') // en secondes
         });
+        
 
     } catch (error) {
         console.error('Login error:', error);
