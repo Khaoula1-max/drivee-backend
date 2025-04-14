@@ -255,7 +255,7 @@ exports.forgotPassword = async (req, res) => {
 
         // Générer un token de réinitialisation
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetTokenExpiry = new Date(Date.now() + 3600000); 
+        const resetTokenExpiry = new Date(Date.now() + 10800000);
 
         // Enregistrer le token dans la base de données
         await prisma.passwordResetToken.create({
