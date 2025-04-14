@@ -231,49 +231,33 @@ exports.login = async (req, res) => {
         });
     }
 };
-// Configure nodemailer (better setup with error handling)
-const transporter = nodemailer.createTransport({
+ // Configure nodemailer
+ const transporter = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.EMAIL_USER, // Your email address
+        pass: process.env.EMAIL_PASS, // Your application password
     },
 });
-
-// Verify transporter connection
-transporter.verify((error) => {
-    if (error) {
-        console.error('Error with mail transporter:', error);
-    } else {
-        console.log('Mail transporter is ready');
-    }
-});
-
-// Password reset request
+    // Oubli de mot de passe
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
 
     if (!email) {
-        return res.status(400).json({ message: 'Email is required' });
+        return res.status(400).json({ message: 'L\'email est requis' });
     }
 
     try {
-        // Don't reveal if user doesn't exist (security best practice)
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
-            return res.status(200).json({ message: 'If the email exists, a reset link has been sent' });
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
 
-        // Delete any existing reset tokens for this user
-        await prisma.passwordResetToken.deleteMany({
-            where: { userId: user.id }
-        });
-
-        // Generate reset token
+        // Générer un token de réinitialisation
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour expiration
+        const resetTokenExpiry = new Date(Date.now() + 3600000); 
 
-        // Store token in database
+        // Enregistrer le token dans la base de données
         await prisma.passwordResetToken.create({
             data: {
                 userId: user.id,
@@ -282,80 +266,54 @@ exports.forgotPassword = async (req, res) => {
             },
         });
 
-        // Create reset link (use environment variable for base URL)
-        const resetLink = `${process.env.FRONTEND_URL || 'https://yourapp.com'}/reset-password?token=${resetToken}`;
-        
-        // Email options
-        const mailOptions = {
-            from: `"Your App Name" <${process.env.EMAIL_USER}>`,
+        // Envoyer un e-mail avec un lien de réinitialisation
+        const resetLink = `https://yourapp.com/reset-password?token=${resetToken}`;
+        await transporter.sendMail({
             to: email,
-            subject: 'Password Reset Request',
-            html: `
-                <p>You requested a password reset. Click the link below to set a new password:</p>
-                <p><a href="${resetLink}">Reset Password</a></p>
-                <p>This link will expire in 1 hour.</p>
-                <p>If you didn't request this, please ignore this email.</p>
-            `,
-        };
+            subject: 'Réinitialisation du mot de passe',
+            html: `<p>Vous avez demandé une réinitialisation de mot de passe. Cliquez sur le lien suivant pour réinitialiser votre mot de passe :</p><p><a href="${resetLink}">Réinitialiser le mot de passe</a></p>`,
+        });
 
-        // Send email
-        await transporter.sendMail(mailOptions);
-        
-        res.status(200).json({ message: 'Password reset email sent if account exists' });
+        res.status(200).json({ message: 'Un e-mail de réinitialisation a été envoyé' });
     } catch (error) {
-        console.error('Password reset error:', error);
-        res.status(500).json({ message: 'An error occurred while processing your request' });
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
     }
 };
-
-// Password reset confirmation
+  // Réinitialiser le mot de passe
 exports.resetPassword = async (req, res) => {
     const { token, newPassword } = req.body;
 
     if (!token || !newPassword) {
-        return res.status(400).json({ message: 'Token and new password are required' });
-    }
-
-    if (newPassword.length < 8) {
-        return res.status(400).json({ message: 'Password must be at least 8 characters' });
+        return res.status(400).json({ message: 'Le token et le nouveau mot de passe sont requis' });
     }
 
     try {
-        // Find the token and check expiration
-        const resetTokenEntry = await prisma.passwordResetToken.findUnique({
-            where: { token },
-            include: { user: true }
-        });
-
+        const resetTokenEntry = await prisma.passwordResetToken.findUnique({ where: { token } });
         if (!resetTokenEntry || resetTokenEntry.expiresAt < new Date()) {
-            return res.status(400).json({ message: 'Invalid or expired token' });
+            return res.status(404).json({ message: 'Token invalide ou expiré' });
         }
 
-        // Hash new password
-        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        // Hacher le nouveau mot de passe
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        // Update user password
+        // Mettre à jour le mot de passe de l'utilisateur
         await prisma.user.update({
             where: { id: resetTokenEntry.userId },
-            data: { password: hashedPassword },
+            data: {
+                password: hashedPassword,
+            },
         });
 
-        // Delete the used token
+        // Supprimer le token de réinitialisation après utilisation
         await prisma.passwordResetToken.delete({
             where: { id: resetTokenEntry.id },
         });
 
-        // Optional: Send confirmation email
-        await transporter.sendMail({
-            to: resetTokenEntry.user.email,
-            subject: 'Password Changed Successfully',
-            html: `<p>Your password has been successfully changed.</p>`,
-        });
-
-        res.status(200).json({ message: 'Password reset successfully' });
+        res.status(200).json({ message: 'Mot de passe réinitialisé avec succès' });
     } catch (error) {
-        console.error('Password reset error:', error);
-        res.status(500).json({ message: 'An error occurred while resetting password' });
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
     }
 };
    // Déconnexion d'un utilisateur
