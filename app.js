@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-
+const fileUpload = require('express-fileupload');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -20,7 +20,11 @@ const app = express();
 // Middleware
 app.use(express.json()); // Parse JSON bodies
 
-
+app.use(fileUpload({
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+    abortOnLimit: true,
+    responseOnLimit: 'File size exceeds the 2MB limit'
+  }));
 app.use(cors({
     origin: 'http://localhost:5173',
     credentials: true,

@@ -81,11 +81,13 @@ model Verification {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   userId      String   @db.ObjectId
   schoolName  String
-  proof       String
-  status      String   @default("PENDING") // ← Champ critique
+  proof       String   // Chemin du fichier
+  status      String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  reviewedBy  String?  @db.ObjectId // ID admin
   createdAt   DateTime @default(now())
-  processedAt DateTime?
-  user        User     @relation(fields: [userId], references: [id])
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }
 model Review {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
