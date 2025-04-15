@@ -1,3 +1,12 @@
 node_modules
 # Keep environment variables out of version control
 .env
+# Ignorer TOUT dans /uploads SAUF les .gitkeep
+/uploads/*
+!/uploads/.gitkeep
+!/uploads/tmp/.gitkeep
+!/uploads/verifications/.gitkeep
+
+# Ignorer le contenu des sous-dossiers (fichiers uploadés)
+/uploads/tmp/*
+/uploads/verifications/*

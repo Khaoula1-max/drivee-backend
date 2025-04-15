@@ -45,7 +45,14 @@ app.use('/verifications', authMiddleware, verificationRoutes);
 app.use('/reviews', authMiddleware, reviewRoutes);
 
 
-
+// Static files (for uploaded documents)
+app.use('/uploads', express.static('uploads', {
+    setHeaders: (res, path) => {
+      // Security headers for uploaded files
+      res.set('X-Content-Type-Options', 'nosniff');
+      res.set('Content-Disposition', 'inline');
+    }
+  }));
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error message:', err.message); // Log the error message
