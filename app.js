@@ -11,6 +11,7 @@ const authMiddleware = require('./middlewares/authMiddleware');
 const reservationRoutes = require('./routes/reservationRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
+const locationRoutes = require('./routes/locationRoutes');
 
 
 // Create an Express application
@@ -39,7 +40,8 @@ app.use(limiter);
 
 // Use user routes
 app.use('/users', userRoutes); 
-app.use('/offres', authMiddleware, offreRoutes);
+app.use('/offres', offreRoutes);
+app.use('/locations', locationRoutes);
 app.use('/reservations', authMiddleware, reservationRoutes); 
 app.use('/verifications', authMiddleware, verificationRoutes);
 app.use('/reviews', authMiddleware, reviewRoutes);

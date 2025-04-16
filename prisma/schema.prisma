@@ -62,7 +62,15 @@ model Offre {
   locationId    String        @db.ObjectId
   location      Location     @relation(fields: [locationId], references: [id])
 }
-
+enum City {
+  HAY_ADRAR
+  AIT_MELLOUL
+  BENSERGAW
+  BATTOIRE
+  TALBORJT
+  DCHEIRA
+  INZEGANE
+}
 model Reservation {
   id              String   @id @default(auto()) @map("_id") @db.ObjectId
   studentId       String   @db.ObjectId
@@ -104,7 +112,6 @@ model Location {
   id      String  @id @default(auto()) @map("_id") @db.ObjectId
   address String
   city    String
-  country String
   offres  Offre[]  
 }
 model Payment {
