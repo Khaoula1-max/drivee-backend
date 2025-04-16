@@ -40,7 +40,7 @@ app.use(limiter);
 
 // Use user routes
 app.use('/users', userRoutes); 
-app.use('/offres', authMiddleware,offreRoutes);
+app.use('/offres', offreRoutes);
 app.use('/locations', locationRoutes);
 app.use('/reservations', authMiddleware, reservationRoutes); 
 app.use('/verifications', authMiddleware, verificationRoutes);
