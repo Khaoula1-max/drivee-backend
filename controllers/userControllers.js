@@ -8,7 +8,72 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
     
 
-
+// Fonction pour envoyer l'email de bienvenue
+const sendWelcomeEmail = async (email, firstName) => {
+    try {
+        await transporter.sendMail({
+            from: `Drivee <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Bienvenue sur Drivee ! 🚗',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+                    <div style="background-color: #1a73e8; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+                        <h1 style="color: white; margin: 0; font-size: 24px;">
+                            <span style="display: inline-block; vertical-align: middle;">🚗</span>
+                            <span style="display: inline-block; vertical-align: middle;">Drivee</span>
+                        </h1>
+                    </div>
+                    
+                    <div style="padding: 30px; background-color: #f9f9f9; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0;">
+                        <h2 style="color: #1a73e8; margin-top: 0;">Bonjour ${firstName || 'nouvel utilisateur'} !</h2>
+                        
+                        <p style="font-size: 16px; line-height: 1.6;">
+                            Merci de vous être inscrit sur <strong style="color: #1a73e8;">Drivee</strong>, 
+                            la plateforme qui révolutionne l'apprentissage de la conduite.
+                        </p>
+                        
+                        <div style="background-color: white; border-radius: 8px; padding: 15px; margin: 20px 0; border: 1px solid #e0e0e0;">
+                            <p style="font-weight: bold; color: #1a73e8; margin-top: 0;">Avec Drivee, vous pouvez :</p>
+                            <ul style="padding-left: 20px; font-size: 15px;">
+                                <li style="margin-bottom: 8px;">Trouver les meilleures écoles de conduite près de chez vous</li>
+                                <li style="margin-bottom: 8px;">Planifier vos leçons en ligne facilement</li>
+                                <li style="margin-bottom: 8px;">Suivre votre progression en temps réel</li>
+                                <li>Obtenir votre permis en toute sérénité</li>
+                            </ul>
+                        </div>
+                        
+                        <p style="font-size: 16px; line-height: 1.6;">
+                            Nous sommes ravis de vous compter parmi nos utilisateurs et nous nous engageons 
+                            à vous offrir la meilleure expérience possible.
+                        </p>
+                        
+                        <div style="text-align: center; margin: 25px 0;">
+                            <a href="" 
+                               style="display: inline-block; background-color: #1a73e8; color: white; 
+                                      padding: 12px 25px; text-decoration: none; border-radius: 4px; 
+                                      font-weight: bold; font-size: 16px;">
+                                Commencer maintenant
+                            </a>
+                        </div>
+                        
+                        <p style="font-size: 16px; line-height: 1.6;">
+                            Cordialement,<br>
+                            <strong style="color: #1a73e8;">L'équipe Drivee</strong>
+                        </p>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #7f8c8d; text-align: center;">
+                        <p>© 2023 Drivee. Tous droits réservés.</p>
+                        <p>Si vous n'êtes pas à l'origine de cette inscription, veuillez ignorer cet email.</p>
+                    </div>
+                </div>
+            `,
+        });
+        console.log(`Email de bienvenue envoyé à ${email}`);
+    } catch (error) {
+        console.error("Erreur lors de l'envoi de l'email de bienvenue:", error);
+    }
+};
 // Inscription pour une école de conduite
 exports.signUpSchool = async (req, res) => {
     console.log("Received data:", req.body);
@@ -33,10 +98,11 @@ exports.signUpSchool = async (req, res) => {
                 phone,
                 address,
                 role: 'SCHOOL',
-                // verified: false
-                // Remove verified unless it exists in schema
             }
         });
+
+        // Envoyer l'email de bienvenue
+        await sendWelcomeEmail(email, firstName);
 
         return res.status(201).json({
             success: true,
@@ -63,23 +129,24 @@ exports.signUpSchool = async (req, res) => {
             message: 'Erreur lors de l\'inscription',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
-    }
-};
-// Inscription pour un apprenant
-exports.signUpLearner = async (req, res) => {
-    console.log("Received data:", req.body);
-    const { firstName, lastName, email, password, phone, dateOfBirth, driverLicense } = req.body;
+        }
+    };
 
-    // Enhanced validation
-    if (!email || !password) {
-        return res.status(400).json({ 
-            success: false,
-            message: 'Email and password are required' 
-        });
-    }
+    // Inscription pour un apprenant
+    exports.signUpLearner = async (req, res) => {
+        console.log("Received data:", req.body);
+        const { firstName, lastName, email, password, phone, dateOfBirth, driverLicense } = req.body;
 
-    try {
-        // Check if email already exists
+        // Enhanced validation
+        if (!email || !password) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'Email and password are required' 
+            });
+        }
+
+        try {
+            // Check if email already exists
         const existingUser = await prisma.user.findUnique({
             where: { email }
         });
@@ -103,9 +170,11 @@ exports.signUpLearner = async (req, res) => {
                 dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
                 role: 'STUDENT',
                 driverLicense: licenseBool,
-                // verified: true // Auto-verified for students
             }
         });
+
+        // Envoyer l'email de bienvenue
+        await sendWelcomeEmail(email, firstName || 'Apprenant');
 
         return res.status(201).json({
             success: true,
