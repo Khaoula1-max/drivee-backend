@@ -1,9 +1,9 @@
-require('dotenv').config(); // Charge les variables d'environnement
+require('dotenv').config(); 
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 
-// Vérifie que les variables requises sont définies
+
 function validateEnv() {
     const requiredVars = ['FIRST_ADMIN_EMAIL', 'FIRST_ADMIN_PASSWORD'];
     for (const varName of requiredVars) {
@@ -55,7 +55,7 @@ async function createFirstAdmin() {
                 phone: adminData.phone,
                 role: adminData.role
             },
-            select: { // Ne retourne pas le mot de passe
+            select: { 
                 id: true,
                 email: true,
                 firstName: true,
