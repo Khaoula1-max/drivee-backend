@@ -39,7 +39,6 @@
     "devDependencies": {
         "@tsconfig/node-lts": "^22.0.1",
         "mongoose": "^6.0.0",
-        "prisma": "^6.5.0"
+        "prisma": "^6.6.0"
     }
-    
 }
