@@ -10,7 +10,8 @@ const {
     resetPassword,
     createAdmin
 } = require('../controllers/userControllers');
-const { authenticateJWT, isAdmin, isSchool } = require('../middlewares/authMiddleware');
+const authenticateJWT = require('../middlewares/authMiddleware');
+
 const {  isAdmin, isSchool } = require('../middlewares/roleMiddleware');
 
 const router = express.Router();
