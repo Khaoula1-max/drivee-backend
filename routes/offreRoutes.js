@@ -7,6 +7,7 @@ const { isSchool } = require('../middlewares/roleMiddleware');
 // Créer une offre (réservé aux écoles)
 router.post('/', authenticateJWT, isSchool, offreController.createOffre);
 
+
 // Lister les offres (public)
 router.get('/', offreController.getAllOffres);
 

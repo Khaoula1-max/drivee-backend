@@ -7,7 +7,66 @@ const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
     
+// Méthode pour créer un admin (doit être protégée et réservée aux super admins)
+exports.createAdmin = async (req, res) => {
+    const { firstName, lastName, email, password, phone } = req.body;
 
+    if (!email || !password) {
+        return res.status(400).json({ 
+            success: false,
+            message: 'Email and password are required' 
+        });
+    }
+
+    try {
+        // Vérifier si l'utilisateur qui fait la requête est bien admin
+        if (req.user.role !== 'ADMIN') {
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized: Only admins can create admin accounts'
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        const newAdmin = await prisma.user.create({
+            data: {
+                firstName: firstName || 'Admin',
+                lastName: lastName || 'User',
+                email,
+                password: hashedPassword,
+                phone: phone || null,
+                role: 'ADMIN',
+            }
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: 'Admin account created successfully',
+            user: {
+                id: newAdmin.id,
+                email: newAdmin.email,
+                role: newAdmin.role
+            }
+        });
+
+    } catch (error) {
+        console.error("Admin creation error:", error);
+        
+        if (error.code === 'P2002') {
+            return res.status(409).json({
+                success: false,
+                message: 'Email already exists'
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: 'Admin creation failed',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
 // Fonction pour envoyer l'email de bienvenue
 const sendWelcomeEmail = async (email, firstName) => {
     try {
@@ -394,10 +453,10 @@ exports.resetPassword = async (req, res) => {
         res.status(200).json({ message: 'Logout successful' });
     };
 
- // Mettre à jour un utilisateur
-exports.updateUser = async (req, res) => {
-    const { id } = req.params;
-    const { 
+    // Mettre à jour un utilisateur
+    exports.updateUser = async (req, res) => {
+        const { id } = req.params;
+        const { 
         firstName, 
         lastName, 
         email, 

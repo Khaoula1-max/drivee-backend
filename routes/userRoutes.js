@@ -4,43 +4,52 @@ const {
     signUpLearner,
     login,
     logout,
-    updateUser ,
-    deleteUser ,
+    updateUser,
+    deleteUser,
     forgotPassword,
-    resetPassword
-} = require('../controllers/userControllers'); // Ensure this path is correct
-const authenticateJWT = require('../middlewares/authMiddleware');
+    resetPassword,
+    createAdmin
+} = require('../controllers/userControllers');
+const { authenticateJWT, isAdmin, isSchool } = require('../middlewares/authMiddleware');
+const {  isAdmin, isSchool } = require('../middlewares/roleMiddleware');
 
 const router = express.Router();
 
-// Route pour l'inscription
+// ==================== PUBLIC ROUTES ====================
 router.post('/signupSchool', signUpSchool);
-
 router.post('/signupLearner', signUpLearner);
-
-
-
-// Route pour la connexion
 router.post('/login', login);
-
-// Route pour l'oubli de mot de passe
 router.post('/forgot-password', forgotPassword);
-
-// Route pour réinitialiser le mot de passe
 router.post('/reset-password', resetPassword);
 
-// Route pour la déconnexion
-router.post('/logout', authenticateJWT, logout); // Ajout de la route de déconnexion
-
-// Route protégée pour récupérer les informations de l'utilisateur
+// ==================== AUTHENTICATED ROUTES ====================
+router.post('/logout', authenticateJWT, logout);
 router.get('/me', authenticateJWT, (req, res) => {
-    res.json(req.user);
+    res.json({
+        id: req.user.id,
+        email: req.user.email,
+        role: req.user.role,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName
+    });
 });
 
-// Route pour mettre à jour un utilisateur (protégée)
-router.put('/:id', authenticateJWT, updateUser );
+// ==================== SCHOOL-SPECIFIC ROUTES ====================
+router.put('/school/profile', authenticateJWT, isSchool, updateUser);
 
-// Route pour supprimer un utilisateur (protégée)
-router.delete('/:id', authenticateJWT, deleteUser );
+// ==================== ADMIN ROUTES ====================
+router.post('/admin/create', authenticateJWT, isAdmin, createAdmin);
+router.get('/admin/users', authenticateJWT, isAdmin, /* controller à implémenter */);
+router.put('/admin/users/:id', authenticateJWT, isAdmin, updateUser);
+router.delete('/admin/users/:id', authenticateJWT, isAdmin, deleteUser);
+
+// ==================== HYBRID ROUTES ====================
+// Permet à un user de modifier son propre profil OU à un admin de modifier n'importe quel profil
+router.put('/:id', authenticateJWT, async (req, res, next) => {
+    if (req.user.id === req.params.id || req.user.role === 'ADMIN') {
+        return next();
+    }
+    return res.status(403).json({ message: 'Forbidden' });
+}, updateUser);
 
 module.exports = router;
