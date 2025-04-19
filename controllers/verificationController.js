@@ -55,7 +55,7 @@ exports.submitVerification = async (req, res) => {
       data: {
         userId: req.user.id,
         schoolName: schoolName.trim(),
-        proof: fileName,
+        proofPath: fileName, // Changed from 'proof' to 'proofPath'
         status: 'PENDING'
       },
       select: {

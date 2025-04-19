@@ -1,6 +1,12 @@
+exports.isLearner = (req, res, next) => {
+    if (req.user.role !== "LEARNER") 
+        return res.status(403).json({ message: "Réservé aux étudiants." });
+    next();
+};
+
 exports.isSchool = (req, res, next) => {
     if (req.user.role !== "SCHOOL") 
-     return res.status(403).json({ message: "Réservé aux écoles." });
+        return res.status(403).json({ message: "Réservé aux écoles." });
     next();
 };
 

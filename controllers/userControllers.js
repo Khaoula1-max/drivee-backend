@@ -66,9 +66,9 @@ exports.createAdmin = async (req, res) => {
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
-};
-// Fonction pour envoyer l'email de bienvenue
-const sendWelcomeEmail = async (email, firstName) => {
+    };
+    // Fonction pour envoyer l'email de bienvenue
+    const sendWelcomeEmail = async (email, firstName) => {
     try {
         await transporter.sendMail({
             from: `Drivee <${process.env.EMAIL_USER}>`,
@@ -261,11 +261,11 @@ exports.signUpSchool = async (req, res) => {
             success: false,
             message: 'Registration failed',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-};
-exports.login = async (req, res) => {
-    const { email, password } = req.body;
+            });
+        }
+    };
+    exports.login = async (req, res) => {
+        const { email, password } = req.body;
 
     // Validation des entrées
     if (!email || !password) {
@@ -535,3 +535,58 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
  };
+
+ exports.getAllUsers = async (req, res) => {
+    try {
+        // Vérifier que admin
+        if (req.user.role !== 'ADMIN') {
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized: Only admins can access all users'
+            });
+        }
+
+        // Récupérer tous les utilisateurs 
+        const { page = 1, limit = 10 } = req.query;
+        const skip = (page - 1) * limit;
+
+        const users = await prisma.user.findMany({
+            skip: parseInt(skip),
+            take: parseInt(limit),
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true,
+                role: true,
+                createdAt: true,
+                updatedAt: true
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
+        const totalUsers = await prisma.user.count();
+
+        return res.status(200).json({
+            success: true,
+            data: users,
+            pagination: {
+                total: totalUsers,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(totalUsers / limit)
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to fetch users',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
