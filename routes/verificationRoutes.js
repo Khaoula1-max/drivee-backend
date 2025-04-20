@@ -30,6 +30,11 @@ router.get(
   authMiddleware,
   controller.getAllVerifications
 );
+router.get(
+  '/status',
+  authMiddleware,
+  controller.checkVerificationStatus
+);
 
 router.get(
   '/files/:filename',

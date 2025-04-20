@@ -12,6 +12,45 @@ const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
+exports.checkVerificationStatus = async (req, res) => {
+  try {
+    // Vérifie si l'utilisateur est une école (optionnel, selon vos besoins)
+    if (req.user.role !== 'SCHOOL') {
+      return res.status(403).json({ error: "Réservé aux écoles." });
+    }
+
+    const verification = await prisma.verification.findFirst({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        status: true,
+        schoolName: true,
+        createdAt: true,
+        reviewedAt: true
+      }
+    });
+
+    if (!verification) {
+      return res.json({ 
+        verified: false,
+        message: "Aucune demande de vérification trouvée"
+      });
+    }
+
+    res.json({
+      verified: verification.status === 'APPROVED',
+      status: verification.status,
+      schoolName: verification.schoolName,
+      lastUpdated: verification.reviewedAt || verification.createdAt
+    });
+
+  } catch (error) {
+    console.error("Verification check error:", error);
+    res.status(500).json({ 
+      error: "Une erreur est survenue lors de la vérification du statut" 
+    });
+  }
+};
 
 exports.submitVerification = async (req, res) => {
   try {
