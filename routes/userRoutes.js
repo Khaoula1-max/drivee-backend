@@ -33,7 +33,7 @@ router.get('/me', authenticateJWT, (req, res) => {
         firstName: req.user.firstName,
         lastName: req.user.lastName
     });
-});
+}); 
 
 // ==================== LEARNER-SPECIFIC ROUTES ====================
 router.put('/learner/profile', authenticateJWT, isLearner, updateUser);

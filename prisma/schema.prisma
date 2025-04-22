@@ -75,6 +75,7 @@ model Reservation {
   student         User     @relation("UserReservations", fields: [studentId], references: [id])
   school          User     @relation("SchoolReservations", fields: [schoolId], references: [id])
   offre           Offre    @relation(fields: [offreId], references: [id])
+   reviewedAt DateTime? @map("reviewed_at")
 }
 
 model Verification {
