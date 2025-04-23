@@ -538,7 +538,7 @@ exports.resetPassword = async (req, res) => {
 
  exports.getAllUsers = async (req, res) => {
     try {
-        // Vérifier que admin
+        // Verify admin
         if (req.user.role !== 'ADMIN') {
             return res.status(403).json({
                 success: false,
@@ -546,11 +546,19 @@ exports.resetPassword = async (req, res) => {
             });
         }
 
-        // Récupérer tous les utilisateurs 
-        const { page = 1, limit = 10 } = req.query;
+        // Get query parameters
+        const { page = 1, limit = 10, role } = req.query;
         const skip = (page - 1) * limit;
 
+        // Build where clause
+        const where = {};
+        if (role) {
+            where.role = role;
+        }
+
+        // Get users
         const users = await prisma.user.findMany({
+            where,
             skip: parseInt(skip),
             take: parseInt(limit),
             select: {
@@ -568,7 +576,7 @@ exports.resetPassword = async (req, res) => {
             }
         });
 
-        const totalUsers = await prisma.user.count();
+        const totalUsers = await prisma.user.count({ where });
 
         return res.status(200).json({
             success: true,
@@ -587,6 +595,7 @@ exports.resetPassword = async (req, res) => {
             success: false,
             message: 'Failed to fetch users',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
+        });
+    }
 };
+

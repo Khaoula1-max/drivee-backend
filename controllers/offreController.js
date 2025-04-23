@@ -27,10 +27,29 @@ exports.createOffre = async (req, res) => {
 // Lister toutes les offres (public)
 exports.getAllOffres = async (req, res) => {
   try {
-    const offres = await prisma.offre.findMany();
-    res.json(offres);
+    const offres = await prisma.offre.findMany({
+      include: {
+        school: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    });
+
+    res.json(offres.map(offre => ({
+      ...offre,
+      schoolName: offre.school ? 
+        `${offre.school.firstName} ${offre.school.lastName}` : 
+        'Unknown School'
+    })));
   } catch (error) {
-    res.status(500).json({ error: "Erreur serveur" });
+    console.error("Error:", error);
+    res.status(500).json({ 
+      error: "Server error",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -57,19 +76,27 @@ exports.updateOffre = async (req, res) => {
 };
 
 // Supprimer une offre (pour l'école propriétaire ou l'admin)
+// In your backend controller (offreController.js)
 exports.deleteOffre = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Vérifier si l'offre appartient à l'école OU si l'utilisateur est un admin
-    const offre = await prisma.offre.findUnique({ where: { id } });
-    if (offre.schoolId !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: "Action non autorisée" });
+    const offer = await prisma.offre.findUnique({ where: { id } });
+    if (!offer) {
+      return res.status(404).json({ error: "Offer not found" });
+    }
+
+    if (offer.schoolId !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: "Unauthorized" });
     }
 
     await prisma.offre.delete({ where: { id } });
-    res.json({ message: "Offre supprimée" });
+    res.json({ message: "Offer deleted successfully" });
   } catch (error) {
-    res.status(400).json({ error: "Erreur de suppression" });
+    console.error("Delete error:", error);
+    res.status(400).json({ 
+      error: "Failed to delete offer",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };

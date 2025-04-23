@@ -59,3 +59,36 @@ exports.getSchoolReservations = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+exports.getAllReservations = async (req, res) => {
+  try {
+    const reservations = await prisma.reservation.findMany({
+      include: {
+        student: {
+          select: {
+            firstName: true,
+            email: true
+          }
+        },
+        school: {
+          select: {
+            firstName: true
+          }
+        },
+        offre: {
+          select: {
+            title: true,
+            price: true
+          }
+        }
+      },
+      orderBy: {
+        reservationDate: 'desc' 
+      }
+    });
+    res.json(reservations);
+  } catch (error) {
+    console.error('Error fetching reservations:', error);
+    res.status(500).json({ error: "Server error" });
+  }
+};

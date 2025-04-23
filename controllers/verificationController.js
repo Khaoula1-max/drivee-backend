@@ -26,7 +26,7 @@ exports.checkVerificationStatus = async (req, res) => {
         status: true,
         schoolName: true,
         createdAt: true,
-        reviewedAt: true
+        // reviewedAt: true
       }
     });
 
@@ -94,7 +94,7 @@ exports.submitVerification = async (req, res) => {
       data: {
         userId: req.user.id,
         schoolName: schoolName.trim(),
-        proofPath: fileName, // Changed from 'proof' to 'proofPath'
+        proof: fileName, 
         status: 'PENDING'
       },
       select: {
@@ -148,7 +148,7 @@ exports.serveVerificationFile = async (req, res) => {
     // Verify access rights
     if (req.user.role !== 'ADMIN') {
       const verification = await prisma.verification.findFirst({
-        where: { proofPath: filename, userId: req.user.id }
+        where: { proof: filename, userId: req.user.id }
       });
       if (!verification) {
         return res.status(403).json({ error: "Access denied" });
