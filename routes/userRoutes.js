@@ -25,14 +25,8 @@ router.post('/reset-password', resetPassword);
 
 router.post('/logout', authenticateJWT, logout);
 router.get('/me', authenticateJWT, (req, res) => {
-    res.json({
-        id: req.user.id,
-        email: req.user.email,
-        role: req.user.role,
-        firstName: req.user.firstName,
-        lastName: req.user.lastName
-    });
-}); 
+    res.json(req.user); // req.user contient déjà toutes les infos
+});
 router.put('/learner/profile', authenticateJWT, isLearner, updateUser);
 router.put('/school/profile', authenticateJWT, isSchool, updateUser);
 router.post('/admin/create', authenticateJWT, isAdmin, createAdmin);

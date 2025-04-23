@@ -595,7 +595,7 @@ exports.resetPassword = async (req, res) => {
             success: false,
             message: 'Failed to fetch users',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
+});
+}
 };
 
