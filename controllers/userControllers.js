@@ -590,42 +590,55 @@ exports.resetPassword = async (req, res) => {
 
  exports.getAllUsers = async (req, res) => {
     try {
-        // Verify admin
-        if (req.user.role !== 'ADMIN') {
-            return res.status(403).json({
-                success: false,
-                message: 'Unauthorized: Only admins can access all users'
-            });
-        }
-
-        // Get query parameters
-        const { page = 1, limit = 10, role } = req.query;
+        // Get query parameters with defaults
+        const { 
+            page = 1, 
+            limit = 10, 
+            role,
+            search 
+        } = req.query;
+        
         const skip = (page - 1) * limit;
 
-        // Build where clause
+        // Build the where clause
         const where = {};
+        
         if (role) {
             where.role = role;
         }
+        
+        if (search) {
+            where.OR = [
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+                { phone: { contains: search, mode: 'insensitive' } },
+                { address: { contains: search, mode: 'insensitive' } }
+            ];
+        }
 
-        // Get users
+        // All fields visible to public
+        const publicFields = {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            address: true,
+            dateOfBirth: true,
+            driverLicense: true,
+            role: true,
+            createdAt: true,
+            updatedAt: true
+        };
+
+        // Get users with pagination
         const users = await prisma.user.findMany({
             where,
             skip: parseInt(skip),
             take: parseInt(limit),
-            select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                phone: true,
-                role: true,
-                createdAt: true,
-                updatedAt: true
-            },
-            orderBy: {
-                createdAt: 'desc'
-            }
+            select: publicFields,
+            orderBy: { createdAt: 'desc' }
         });
 
         const totalUsers = await prisma.user.count({ where });
@@ -647,7 +660,6 @@ exports.resetPassword = async (req, res) => {
             success: false,
             message: 'Failed to fetch users',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
-});
-}
+        });
+    }
 };
-
