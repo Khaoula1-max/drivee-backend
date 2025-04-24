@@ -453,71 +453,123 @@ exports.resetPassword = async (req, res) => {
         res.status(200).json({ message: 'Logout successful' });
     };
 
-    // Mettre à jour un utilisateur
     exports.updateUser = async (req, res) => {
         const { id } = req.params;
         const { 
-        firstName, 
-        lastName, 
-        email, 
-        phone, 
-        dateOfBirth, 
-        address, 
-        role,  
-        driverLicense 
-    } = req.body;
-
-    // Validation basique
-    if (!id) {
-        return res.status(400).json({ message: 'User ID is required' });
-    }
-
-    try {
-        // Vérifier d'abord si l'utilisateur existe
-        const userExists = await prisma.user.findUnique({ where: { id } });
-        if (!userExists) {
-            return res.status(404).json({ message: 'User not found' });
+            firstName, 
+            lastName, 
+            email, 
+            phone, 
+            dateOfBirth, 
+            address, 
+            role,  
+            driverLicense,
+            currentPassword, // Nouveau champ pour le mot de passe actuel
+            newPassword      // Nouveau champ pour le nouveau mot de passe
+        } = req.body;
+    
+        // Validation basique
+        if (!id) {
+            return res.status(400).json({ message: 'User ID is required' });
         }
-
-        // Mettre à jour l'utilisateur
-        const updatedUser = await prisma.user.update({
-            where: { id },
-            data: {
-                firstName,
-                lastName,
-                email,
-                phone,
-                dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-                address,
-                role,
-                driverLicense, 
-            },
-        });
-
-        res.status(200).json({ 
-            success: true,
-            message: 'User updated successfully', 
-            user: updatedUser 
-        });
-
-    } catch (error) {
-        console.error('Update user error:', error);
-        
-        if (error.code === 'P2002') {
-            return res.status(409).json({ 
-                message: 'Email or phone number already exists' 
+    
+        try {
+            // Vérifier d'abord si l'utilisateur existe
+            const user = await prisma.user.findUnique({ where: { id } });
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+    
+            // Si on essaie de changer le mot de passe
+            if (newPassword) {
+                // Vérifier que le currentPassword est fourni
+                if (!currentPassword) {
+                    return res.status(400).json({ 
+                        success: false,
+                        message: 'Current password is required to change password' 
+                    });
+                }
+    
+                // Vérifier que le mot de passe actuel est correct
+                const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+                if (!isPasswordValid) {
+                    return res.status(401).json({ 
+                        success: false,
+                        message: 'Current password is incorrect' 
+                    });
+                }
+    
+                // Hacher le nouveau mot de passe
+                const hashedPassword = await bcrypt.hash(newPassword, 10);
+                
+                // Mettre à jour l'utilisateur avec le nouveau mot de passe
+                const updatedUser = await prisma.user.update({
+                    where: { id },
+                    data: {
+                        password: hashedPassword,
+                        // On peut aussi mettre à jour les autres champs si nécessaire
+                        firstName,
+                        lastName,
+                        email,
+                        phone,
+                        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+                        address,
+                        role,
+                        driverLicense, 
+                    },
+                });
+    
+                return res.status(200).json({ 
+                    success: true,
+                    message: 'Password updated successfully', 
+                    user: updatedUser 
+                });
+            }
+    
+            // Si on ne change pas le mot de passe, juste les autres infos
+            const updatedUser = await prisma.user.update({
+                where: { id },
+                data: {
+                    firstName,
+                    lastName,
+                    email,
+                    phone,
+                    dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+                    address,
+                    role,
+                    driverLicense, 
+                },
+            });
+    
+            return res.status(200).json({ 
+                success: true,
+                message: 'User updated successfully', 
+                user: updatedUser 
+            });
+    
+        } catch (error) {
+            console.error('Update user error:', error);
+            
+            if (error.code === 'P2002') {
+                return res.status(409).json({ 
+                    success: false,
+                    message: 'Email or phone number already exists' 
+                });
+            }
+            if (error.code === 'P2025') {
+                return res.status(404).json({ 
+                    success: false,
+                    message: 'User not found' 
+                });
+            }
+            
+            return res.status(500).json({ 
+                success: false,
+                message: 'An error occurred while updating the user',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
-        if (error.code === 'P2025') {
-            return res.status(404).json({ message: 'User not found' });
-        }
-        
-        res.status(500).json({ 
-            message: 'An error occurred while updating the user',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
-    }
-};
+    };
     // Supprimer un utilisateur
     exports.deleteUser  = async (req, res) => {
         const { id } = req.params;
