@@ -590,55 +590,36 @@ exports.resetPassword = async (req, res) => {
 
  exports.getAllUsers = async (req, res) => {
     try {
-        // Get query parameters with defaults
-        const { 
-            page = 1, 
-            limit = 10, 
-            role,
-            search 
-        } = req.query;
-        
+        // Get query parameters
+        const { page = 1, limit = 10, role } = req.query;
         const skip = (page - 1) * limit;
 
-        // Build the where clause
+        // Build where clause
         const where = {};
-        
         if (role) {
             where.role = role;
         }
-        
-        if (search) {
-            where.OR = [
-                { firstName: { contains: search, mode: 'insensitive' } },
-                { lastName: { contains: search, mode: 'insensitive' } },
-                { email: { contains: search, mode: 'insensitive' } },
-                { phone: { contains: search, mode: 'insensitive' } },
-                { address: { contains: search, mode: 'insensitive' } }
-            ];
-        }
 
-        // All fields visible to public
-        const publicFields = {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-            address: true,
-            dateOfBirth: true,
-            driverLicense: true,
-            role: true,
-            createdAt: true,
-            updatedAt: true
-        };
-
-        // Get users with pagination
+        // Get users with limited public information
         const users = await prisma.user.findMany({
             where,
             skip: parseInt(skip),
             take: parseInt(limit),
-            select: publicFields,
-            orderBy: { createdAt: 'desc' }
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                // email: true, // Retiré pour la confidentialité
+                // phone: true, // Retiré pour la confidentialité
+                role: true,
+                createdAt: true,
+                updatedAt: true,
+                // Ajoutez d'autres champs publics si nécessaire
+                address: true // Exemple, à adapter selon vos besoins
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
         });
 
         const totalUsers = await prisma.user.count({ where });
