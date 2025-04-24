@@ -14,7 +14,6 @@
     "description": "A backend service for Drivee application",
     "dependencies": {
         "@prisma/client": "^6.6.0",
-        "bcrypt": "^5.1.1",
         "bcryptjs": "^2.4.3",
         "compass": "^0.1.1",
         "cookie-parser": "^1.4.7",
