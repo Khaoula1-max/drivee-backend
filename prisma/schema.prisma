@@ -5,6 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 generator client {
   provider = "prisma-client-js"
+    output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -27,7 +28,6 @@ model User {
   phone         String?
   dateOfBirth   DateTime?
   address       String?
-  
   role          UserRole
   driverLicense   Boolean @default(false) // New field for driver's licens
   createdAt     DateTime      @default(now())
@@ -104,10 +104,10 @@ model Review {
 model Location {
   id      String  @id @default(auto()) @map("_id") @db.ObjectId
   address String
+  
   city    City
   offres  Offre[]
 }
-
 enum City {
   HAY_ADRAR
   AIT_MELLOUL
