@@ -14,26 +14,12 @@ exports.createOffre = async (req, res) => {
       city, 
       address 
     } = req.body;
-    
-    // Vérifier si la localisation existe déjà
-    let location = await prisma.location.findFirst({
-      where: {
+    const location = await prisma.location.create({
+      data: {
         city: city,
         address: address
       }
     });
-
-    // Si elle n'existe pas, la créer
-    if (!location) {
-      location = await prisma.location.create({
-        data: {
-          city: city,
-          address: address
-        }
-      });
-    }
-
-    // Créer l'offre
     const newOffre = await prisma.offre.create({
       data: {
         title,
@@ -46,7 +32,7 @@ exports.createOffre = async (req, res) => {
         locationId: location.id,
       },
       include: {
-        location: true // Inclure les informations de localisation dans la réponse
+        location: true
       }
     });
     
@@ -59,8 +45,6 @@ exports.createOffre = async (req, res) => {
     });
   }
 };
-
-// Lister toutes les offres (public)
 exports.getAllOffres = async (req, res) => {
   try {
     const offres = await prisma.offre.findMany({
@@ -71,7 +55,7 @@ exports.getAllOffres = async (req, res) => {
             lastName: true
           }
         },
-        location: true // Inclure les informations de localisation
+        location: true
       }
     });
 
@@ -92,13 +76,12 @@ exports.getAllOffres = async (req, res) => {
   }
 };
 
-// Modifier une offre (pour l'école propriétaire ou l'admin)
 exports.updateOffre = async (req, res) => {
   try {
     const { id } = req.params;
     const { city, address, ...updates } = req.body;
 
-    // Vérifier si l'offre appartient à l'école OU si l'utilisateur est un admin
+    // Vérifier l'offre existante
     const offre = await prisma.offre.findUnique({ 
       where: { id },
       include: { location: true }
@@ -108,21 +91,40 @@ exports.updateOffre = async (req, res) => {
       return res.status(403).json({ error: "Action non autorisée" });
     }
 
-    // Mettre à jour la localisation si nécessaire
+    let locationId = offre.locationId;
+    
+    // Si la localisation change, créer une nouvelle entrée
     if (city || address) {
-      await prisma.location.update({
-        where: { id: offre.locationId },
+      const newLocation = await prisma.location.create({
         data: {
           city: city || offre.location.city,
           address: address || offre.location.address
         }
       });
+      locationId = newLocation.id;
+      
+      // Supprimer l'ancienne localisation si non utilisée
+      const oldLocationInUse = await prisma.offre.findFirst({
+        where: { 
+          locationId: offre.locationId,
+          NOT: { id: offre.id }
+        }
+      });
+      
+      if (!oldLocationInUse) {
+        await prisma.location.delete({ 
+          where: { id: offre.locationId }
+        });
+      }
     }
 
     // Mettre à jour l'offre
     const updatedOffre = await prisma.offre.update({
       where: { id },
-      data: updates,
+      data: {
+        ...updates,
+        locationId: locationId
+      },
       include: {
         location: true
       }
@@ -138,7 +140,7 @@ exports.updateOffre = async (req, res) => {
   }
 };
 
-// Supprimer une offre (pour l'école propriétaire ou l'admin)
+// Supprimer une offre
 exports.deleteOffre = async (req, res) => {
   try {
     const { id } = req.params;
@@ -158,7 +160,7 @@ exports.deleteOffre = async (req, res) => {
 
     await prisma.offre.delete({ where: { id } });
     
-    // Optionnel: Supprimer la localisation si elle n'est plus utilisée
+    // Supprimer la localisation si non utilisée
     const locationInUse = await prisma.offre.findFirst({
       where: { locationId: offer.locationId }
     });
@@ -178,7 +180,8 @@ exports.deleteOffre = async (req, res) => {
     });
   }
 };
-// Obtenir une offre par ID 
+
+// Obtenir une offre par ID
 exports.getOffreById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -202,7 +205,6 @@ exports.getOffreById = async (req, res) => {
       return res.status(404).json({ error: "Offre non trouvée" });
     }
 
-    // Formater les données pour une meilleure réponse
     const response = {
       ...offre,
       schoolName: offre.school ? 
