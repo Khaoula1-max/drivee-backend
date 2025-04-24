@@ -22,13 +22,11 @@ router.post('/signupLearner', signUpLearner);
 router.post('/login', login);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
-
-// Route publique pour obtenir la liste des utilisateurs (modifiée)
 router.get('/users', getAllUsers);
 
 router.post('/logout', authenticateJWT, logout);
 router.get('/me', authenticateJWT, (req, res) => {
-    res.json(req.user); // req.user contient déjà toutes les infos
+    res.json(req.user); 
 });
 router.put('/learner/profile', authenticateJWT, isLearner, updateUser);
 router.put('/school/profile', authenticateJWT, isSchool, updateUser);
