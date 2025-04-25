@@ -14,6 +14,9 @@ exports.createOffre = async (req, res) => {
       city, 
       address 
     } = req.body;
+    if (!title || !description || !price || !durationHours || !startDate || !endDate || !city || !address) {
+      return res.status(400).json({ error: "Tous les champs sont requis, y compris la ville et l'adresse" });
+    }
     const location = await prisma.location.create({
       data: {
         city: city,
@@ -25,25 +28,26 @@ exports.createOffre = async (req, res) => {
         title,
         description,
         price: parseFloat(price),
-  durationHours: parseInt(durationHours),
-   startDate: new Date(startDate),
-   endDate: new Date(endDate),
-   schoolId: req.user.id, 
-   locationId: location.id,
-},
-   include: {
-    location: true
-  }
-});
+        durationHours: parseInt(durationHours),
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        schoolId: req.user.id, 
+        locationId: location.id,
+      },
+      include: {
+        location: true
+      }
+    });
     
     res.status(201).json(newOffre);
   } catch (error) {
     console.error("Error creating offer:", error);
-  res.status(400).json({ 
-   error: "Erreur lors de la création de l'offre",
-  details: process.env.NODE_ENV === 'development' ? error.message : undefined
-  });
-}};
+    res.status(400).json({ 
+      error: "Erreur lors de la création de l'offre",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
 exports.getAllOffres = async (req, res) => {
   try {
 const offres = await prisma.offre.findMany({
