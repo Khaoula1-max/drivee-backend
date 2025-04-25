@@ -157,59 +157,48 @@ const offres = await prisma.offre.findMany({
 };
 exports.updateOffre = async (req, res) => {
   try {
-   const { id } = req.params;
-  const { city, address, ...updates } = req.body;
-
-// nt2akdo mn offre wx kyn
-    const offre = await prisma.offre.findUnique({ 
+    const { id } = req.params;
+    const { city, address, location, ...updates } = req.body;
+    const existingOffre = await prisma.offre.findUnique({
       where: { id },
       include: { location: true }
     });
-    
-if (offre.schoolId !== req.user.id && req.user.role !== 'ADMIN') {
-   return res.status(403).json({ error: "Action non autorisée" });
-    }
 
-  const  locationId = offre.locationId;
-    
-    // ila bdlo locl ndiro entrre akhra
+    if (!existingOffre) {
+      return res.status(404).json({ error: "Offre non trouvée" });
+    }
+    if (existingOffre.schoolId !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: "Vous n'avez pas les droits pour modifier cette offre" });
+    }
+    const updatedOffre = await prisma.offre.update({
+      where: { id },
+      data: updates,
+      include: { location: true }
+    });
+
     if (city || address) {
-      const newLocation = await prisma.location.create({
-        data: {
-          city: city || offre.location.city,
-          address: address || offre.location.address
-        }
-      });
-      locationId = newLocation.id;
-      
-// local 9dima ila mkhmouch biha nhydouha automatiquement
-      const oldLocationInUse = await prisma.offre.findFirst({
-        where: { 
-          locationId: offre.locationId,
-          NOT: { id: offre.id }
+      await prisma.location.update({
+        where: { id: updatedOffre.locationId },
+        data: { 
+          city: city || updatedOffre.location.city,
+          address: address || updatedOffre.location.address
         }
       });
       
-      if (!oldLocationInUse) {
-        await prisma.location.delete({ 
-          where: { id: offre.locationId }
-        });
-      }
+      const finalOffre = await prisma.offre.findUnique({
+        where: { id },
+        include: { location: true }
+      });
+      
+      return res.json(finalOffre);
     }
 
-// upd dyl offre
-   const updatedOffre = await prisma.offre.update({
-    where: { id },
-    data: {...updates,
-     locationId: locationId
-      },
-      include: {location: true
-      } });
     res.json(updatedOffre);
   } catch (error) {
     console.error("Update error:", error);
-    res.status(400).json({  error: "Erreur de modification",
-    details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    res.status(400).json({ 
+      error: "Échec de la mise à jour",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
