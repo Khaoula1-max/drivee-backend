@@ -1,8 +1,11 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// nsobo offre
 exports.createOffre = async (req, res) => {
+  console.log('Début de la création d\'offre');
+  console.log('Données reçues:', req.body);
+  console.log('Utilisateur authentifié:', req.user?.id);
+
   try {
     const { 
       title, 
@@ -14,15 +17,56 @@ exports.createOffre = async (req, res) => {
       city, 
       address 
     } = req.body;
+
+    console.log('Validation des champs requis...');
     if (!title || !description || !price || !durationHours || !startDate || !endDate || !city || !address) {
-      return res.status(400).json({ error: "Tous les champs sont requis, y compris la ville et l'adresse" });
+      console.error('Champs manquants:', {
+        title: !title,
+        description: !description,
+        price: !price,
+        durationHours: !durationHours,
+        startDate: !startDate,
+        endDate: !endDate,
+        city: !city,
+        address: !address
+      });
+      return res.status(400).json({ 
+        error: "Tous les champs sont requis, y compris la ville et l'adresse",
+        details: {
+          missingFields: {
+            title: !title,
+            description: !description,
+            price: !price,
+            durationHours: !durationHours,
+            startDate: !startDate,
+            endDate: !endDate,
+            city: !city,
+            address: !address
+          }
+        }
+      });
     }
+
+    console.log('Création de la localisation...');
     const location = await prisma.location.create({
       data: {
         city: city,
         address: address
       }
     });
+    console.log('Location créée:', location);
+
+    console.log('Préparation des données pour l\'offre:', {
+      title,
+      description,
+      price: parseFloat(price),
+      durationHours: parseInt(durationHours),
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      schoolId: req.user.id,
+      locationId: location.id
+    });
+
     const newOffre = await prisma.offre.create({
       data: {
         title,
@@ -39,13 +83,50 @@ exports.createOffre = async (req, res) => {
       }
     });
     
+    console.log('Offre créée avec succès:', newOffre);
     res.status(201).json(newOffre);
+
   } catch (error) {
-    console.error("Error creating offer:", error);
+    console.error("\nERREUR DÉTAILLÉE:");
+    console.error('Message:', error.message);
+    console.error('Code:', error.code);
+    console.error('Meta:', error.meta);
+    console.error('Stack:', error.stack);
+    
+    if (error.code === 'P2002') {
+      console.error('Erreur de contrainte unique (violation de clé unique)');
+      const errorDetails = {
+        code: error.code,
+        target: error.meta?.target
+      };
+      return res.status(400).json({ 
+        error: "Violation de contrainte unique",
+        details: errorDetails
+      });
+    }
+
+    if (error.code === 'P2025') {
+      console.error('Enregistrement requis introuvable');
+      return res.status(400).json({ 
+        error: "Enregistrement requis introuvable",
+        details: error.meta
+      });
+    }
+
+    console.error('Type d\'erreur:', typeof error);
     res.status(400).json({ 
       error: "Erreur lors de la création de l'offre",
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: {
+        message: error.message,
+        code: error.code,
+        ...(process.env.NODE_ENV === 'development' && {
+          stack: error.stack,
+          fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+        })
+      }
     });
+  } finally {
+    console.log('Fin du processus de création d\'offre\n');
   }
 };
 exports.getAllOffres = async (req, res) => {
