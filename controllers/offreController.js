@@ -1,6 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-
 const CITIES = require('../utils/cityData');
 
 exports.createOffre = async (req, res) => {
@@ -14,24 +13,22 @@ exports.createOffre = async (req, res) => {
     let { title, description, price, durationHours, city, address, startDate, endDate, location } = req.body;
     const schoolId = req.user.id;
 
-    // Gestion des données imbriquées dans l'objet location
+    // Gestion des données imbriquées
     if (location) {
       city = city || location.city;
       address = address || location.address;
     }
 
-    // 2. Validation complète
+    // 2. Validation des champs obligatoires
     const requiredFields = { title, city, address };
     const missingFields = Object.entries(requiredFields)
       .filter(([_, value]) => !value)
       .map(([key]) => key);
 
     if (missingFields.length > 0) {
-      console.error('Champs requis manquants:', missingFields);
       return res.status(400).json({ 
         error: "Champs obligatoires manquants",
-        missingFields,
-        receivedData: { title, city, address }
+        missingFields
       });
     }
 
@@ -52,34 +49,56 @@ exports.createOffre = async (req, res) => {
       return res.status(400).json({ error: "La durée doit être un nombre" });
     }
 
-    // 5. Création de la location
-    console.log('Création de la location avec:', { city, address });
-    const newLocation = await prisma.location.create({
-      data: { 
-        city: city.trim(), 
-        address: address.trim() 
-      }
-    });
+    // 5. Vérification et création de la location (sans duplication)
+    const [newLocation] = await prisma.$transaction([
+      prisma.location.upsert({
+        where: {
+          city_address: {
+            city: city.trim(),
+            address: address.trim()
+          }
+        },
+        create: {
+          city: city.trim(),
+          address: address.trim()
+        },
+        update: {} // Ne rien mettre à jour si existe déjà
+      })
+    ]);
 
     // 6. Préparation des dates
     const now = new Date();
     const defaultEndDate = new Date(now.getTime() + 86400000); // +1 jour
 
-    // 7. Création de l'offre
-    const offerData = {
-      title: title.trim(),
-      description: description?.trim() || "",
-      price: price ? Number(price) : 0,
-      durationHours: durationHours ? Number(durationHours) : 1,
-      schoolId,
-      locationId: newLocation.id,
-      startDate: startDate ? new Date(startDate) : now,
-      endDate: endDate ? new Date(endDate) : defaultEndDate
-    };
+    // 7. Vérification des doublons d'offres
+    const existingOffer = await prisma.offre.findFirst({
+      where: {
+        title: title.trim(),
+        schoolId,
+        locationId: newLocation.id,
+        startDate: startDate ? new Date(startDate) : now
+      }
+    });
 
-    console.log('Création de l\'offre avec:', offerData);
+    if (existingOffer) {
+      return res.status(409).json({
+        error: "Une offre identique existe déjà",
+        existingOfferId: existingOffer.id
+      });
+    }
+
+    // 8. Création de l'offre
     const newOffre = await prisma.offre.create({
-      data: offerData,
+      data: {
+        title: title.trim(),
+        description: description?.trim() || "",
+        price: price ? Number(price) : 0,
+        durationHours: durationHours ? Number(durationHours) : 1,
+        schoolId,
+        locationId: newLocation.id,
+        startDate: startDate ? new Date(startDate) : now,
+        endDate: endDate ? new Date(endDate) : defaultEndDate
+      },
       include: { 
         location: true,
         school: {
@@ -93,7 +112,7 @@ exports.createOffre = async (req, res) => {
       }
     });
 
-    // 8. Réponse formatée
+    // 9. Formatage de la réponse
     const response = {
       ...newOffre,
       schoolName: `${newOffre.school.firstName} ${newOffre.school.lastName}`,
@@ -102,32 +121,25 @@ exports.createOffre = async (req, res) => {
         phone: newOffre.school.phone
       }
     };
-
-    // Suppression des données sensibles
     delete response.school;
-    
+
     console.log('Offre créée avec succès:', response);
     return res.status(201).json(response);
 
   } catch (error) {
-    console.error("Erreur complète:", {
-      message: error.message,
-      stack: error.stack,
-      body: req.body,
-      user: req.user
-    });
+    console.error("Erreur complète:", error);
 
-    // Gestion spécifique des erreurs Prisma
     if (error.code === 'P2002') {
-      return res.status(409).json({ error: "Une offre ou localisation similaire existe déjà" });
+      const target = error.meta?.target;
+      if (target.includes('city_address')) {
+        return res.status(409).json({ error: "Cette localisation existe déjà" });
+      }
+      return res.status(409).json({ error: "Une offre similaire existe déjà" });
     }
 
     res.status(500).json({ 
       error: "Erreur serveur",
-      ...(process.env.NODE_ENV === 'development' && {
-        details: error.message,
-        stack: error.stack
-      })
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     });
   }
 };
