@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Créer une offre (pour les écoles seulement)
+// nsobo offre
 exports.createOffre = async (req, res) => {
   try {
     const { 
@@ -25,47 +25,42 @@ exports.createOffre = async (req, res) => {
         title,
         description,
         price: parseFloat(price),
-        durationHours: parseInt(durationHours),
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        schoolId: req.user.id, 
-        locationId: location.id,
-      },
-      include: {
-        location: true
-      }
-    });
+  durationHours: parseInt(durationHours),
+   startDate: new Date(startDate),
+   endDate: new Date(endDate),
+   schoolId: req.user.id, 
+   locationId: location.id,
+},
+   include: {
+    location: true
+  }
+});
     
     res.status(201).json(newOffre);
   } catch (error) {
     console.error("Error creating offer:", error);
-    res.status(400).json({ 
-      error: "Erreur lors de la création de l'offre",
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
+  res.status(400).json({ 
+   error: "Erreur lors de la création de l'offre",
+  details: process.env.NODE_ENV === 'development' ? error.message : undefined
+  });
+}};
 exports.getAllOffres = async (req, res) => {
   try {
-    const offres = await prisma.offre.findMany({
-      include: {
-        school: {
-          select: {
-            firstName: true,
-            lastName: true
-          }
-        },
-        location: true
-      }
-    });
+const offres = await prisma.offre.findMany({
+  include: {
+    school: {
+   select: {
+   firstName: true,
+  lastName: true
+     }},
+   location: true
+  }
+  });
 
-    res.json(offres.map(offre => ({
-      ...offre,
-      schoolName: offre.school ? 
-        `${offre.school.firstName} ${offre.school.lastName}` : 
-        'Unknown School',
-      city: offre.location?.city || 'Unknown City',
-      address: offre.location?.address || 'Unknown Address'
+  res.json(offres.map(offre => ({...offre,
+     schoolName: `${offre.school.firstName} ${offre.school.lastName}`,
+     city: offre.location.city,
+      address: offre.location.address
     })));
   } catch (error) {
     console.error("Error:", error);
@@ -75,25 +70,24 @@ exports.getAllOffres = async (req, res) => {
     });
   }
 };
-
 exports.updateOffre = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { city, address, ...updates } = req.body;
+   const { id } = req.params;
+  const { city, address, ...updates } = req.body;
 
-    // Vérifier l'offre existante
+// nt2akdo mn offre wx kyn
     const offre = await prisma.offre.findUnique({ 
       where: { id },
       include: { location: true }
     });
     
-    if (offre.schoolId !== req.user.id && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ error: "Action non autorisée" });
+if (offre.schoolId !== req.user.id && req.user.role !== 'ADMIN') {
+   return res.status(403).json({ error: "Action non autorisée" });
     }
 
-    let locationId = offre.locationId;
+  const  locationId = offre.locationId;
     
-    // Si la localisation change, créer une nouvelle entrée
+    // ila bdlo locl ndiro entrre akhra
     if (city || address) {
       const newLocation = await prisma.location.create({
         data: {
@@ -103,7 +97,7 @@ exports.updateOffre = async (req, res) => {
       });
       locationId = newLocation.id;
       
-      // Supprimer l'ancienne localisation si non utilisée
+// local 9dima ila mkhmouch biha nhydouha automatiquement
       const oldLocationInUse = await prisma.offre.findFirst({
         where: { 
           locationId: offre.locationId,
@@ -118,49 +112,39 @@ exports.updateOffre = async (req, res) => {
       }
     }
 
-    // Mettre à jour l'offre
-    const updatedOffre = await prisma.offre.update({
-      where: { id },
-      data: {
-        ...updates,
-        locationId: locationId
+// upd dyl offre
+   const updatedOffre = await prisma.offre.update({
+    where: { id },
+    data: {...updates,
+     locationId: locationId
       },
-      include: {
-        location: true
-      }
-    });
-    
+      include: {location: true
+      } });
     res.json(updatedOffre);
   } catch (error) {
     console.error("Update error:", error);
-    res.status(400).json({ 
-      error: "Erreur de modification",
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    res.status(400).json({  error: "Erreur de modification",
+    details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
-
-// Supprimer une offre
+// Supp whd offre
 exports.deleteOffre = async (req, res) => {
   try {
     const { id } = req.params;
-
     const offer = await prisma.offre.findUnique({ 
       where: { id },
       include: { location: true }
     });
-    
     if (!offer) {
       return res.status(404).json({ error: "Offer not found" });
     }
-
     if (offer.schoolId !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(403).json({ error: "Unauthorized" });
     }
-
     await prisma.offre.delete({ where: { id } });
     
-    // Supprimer la localisation si non utilisée
+    // Supp locl ila ml9ahach
     const locationInUse = await prisma.offre.findFirst({
       where: { locationId: offer.locationId }
     });
@@ -180,49 +164,53 @@ exports.deleteOffre = async (req, res) => {
     });
   }
 };
-
-// Obtenir une offre par ID
 exports.getOffreById = async (req, res) => {
   try {
     const { id } = req.params;
-
     const offre = await prisma.offre.findUnique({
-      where: { id },
-      include: {
-        school: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true
-          }
-        },
-        location: true
-      }
-    });
-
-    if (!offre) {
-      return res.status(404).json({ error: "Offre non trouvée" });
-    }
-
-    const response = {
-      ...offre,
-      schoolName: offre.school ? 
-        `${offre.school.firstName} ${offre.school.lastName}` : 
-        'Unknown School',
-      contact: {
-        email: offre.school?.email,
-        phone: offre.school?.phone
-      },
-      location: offre.location || { city: 'Unknown', address: 'Unknown' }
-    };
-
-    res.json(response);
-  } catch (error) {
-    console.error("Error fetching offer:", error);
-    res.status(500).json({ 
-      error: "Server error",
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    where: { id },
+    include: {
+    school: {
+    select: {
+    firstName: true,
+   lastName: true,
+   email: true,
+  phone: true
+}
+},
+ location: true
+}
+});
+if (!offre) {
+ return res.status(404).json({ error: "Offre non trouvée" });
+}
+const response = {...offre,schoolName: `${offre.school.firstName} ${offre.school.lastName}`,
+  contact: {
+   email: offre.school.email,
+   phone: offre.school.phone
+  },
+  location: offre.location
+};
+res.json(response);
+} catch (error) {console.error("Error fetching offer:", error);
+res.status(500).json({error: "Server error",details: process.env.NODE_ENV === 'development' ? error.message : undefined
+});
+  }
+};
+exports.getOffresBySchool = async (req, res) => {
+  try {
+const { schoolId } = req.params;
+const offres = await prisma.offre.findMany({
+where: { 
+schoolId: schoolId 
+ },
+include: {school: {select: { firstName: true, lastName: true}},location: true},
+orderBy:{createdAt: 'desc'}});
+const response = offres.map(offre => ({...offre,schoolName: `${offre.school.firstName} ${offre.school.lastName}`,city: offre.location.city,address: offre.location.address
+    }));
+res.json(response);}  
+catch (error) {console.error("Error fetching school offers:", error);
+res.status(500).json({ rror: "Server error",details: process.env.NODE_ENV === 'development' ? error.message : undefined
+   });
   }
 };
