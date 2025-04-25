@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+
 const CITIES = require('../utils/cityData');
 
 exports.createOffre = async (req, res) => {
@@ -212,26 +213,29 @@ exports.deleteOffre = async (req, res) => {
       where: { id },
       include: { location: true }
     });
+    
     if (!offer) {
       return res.status(404).json({ error: "Offer not found" });
     }
+    
     if (offer.schoolId !== req.user.id && req.user.role !== 'ADMIN') {
       return res.status(403).json({ error: "Unauthorized" });
     }
+    
+    // Supprimer d'abord l'offre
     await prisma.offre.delete({ where: { id } });
     
-    // Supp locl ila ml9ahach
-    const locationInUse = await prisma.offre.findFirst({
-      where: { locationId: offer.locationId }
-    });
-    
-    if (!locationInUse) {
+    // Puis supprimer la location associée (si elle existe)
+    if (offer.locationId) {
       await prisma.location.delete({ 
         where: { id: offer.locationId }
+      }).catch(error => {
+        // Gérer l'erreur si la location n'existe pas déjà
+        console.error("Error deleting location:", error);
       });
     }
-
-    res.json({ message: "Offer deleted successfully" });
+    
+    res.json({ message: "Offer and associated location deleted successfully" });
   } catch (error) {
     console.error("Delete error:", error);
     res.status(400).json({ 

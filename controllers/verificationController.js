@@ -144,7 +144,6 @@ exports.serveVerificationFile = async (req, res) => {
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: "File not found" });
     }
-
     // Verify access rights
     if (req.user.role !== 'ADMIN') {
       const verification = await prisma.verification.findFirst({
@@ -159,5 +158,95 @@ exports.serveVerificationFile = async (req, res) => {
   } catch (error) {
     console.error("File serve error:", error);
     res.status(500).json({ error: "Failed to retrieve file" });
+  }
+};
+// Nouveaux contrôleurs à ajouter
+exports.verifySchool = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Vérifier que la demande existe
+    const verification = await prisma.verification.findUnique({
+      where: { id: parseInt(id) },
+      include: { user: true }
+    });
+
+    if (!verification) {
+      return res.status(404).json({ error: "Verification request not found" });
+    }
+
+    // Vérifier que le statut est bien 'PENDING'
+    if (verification.status !== 'PENDING') {
+      return res.status(400).json({ error: "This request has already been processed" });
+    }
+
+    // Mettre à jour la vérification
+    const updatedVerification = await prisma.verification.update({
+      where: { id: parseInt(id) },
+      data: { 
+        status: 'APPROVED',
+        reviewedAt: new Date(),
+        reviewedBy: req.user.id
+      }
+    });
+
+    // Mettre à jour le statut de l'utilisateur
+    await prisma.user.update({
+      where: { id: verification.userId },
+      data: { 
+        isVerified: true,
+        verifiedAt: new Date()
+      }
+    });
+
+    res.json({
+      message: "School verified successfully",
+      verification: updatedVerification
+    });
+
+  } catch (error) {
+    console.error("Verify school error:", error);
+    res.status(500).json({ error: "Failed to verify school" });
+  }
+};
+
+exports.rejectSchool = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    // Vérifier que la demande existe
+    const verification = await prisma.verification.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!verification) {
+      return res.status(404).json({ error: "Verification request not found" });
+    }
+
+    // Vérifier que le statut est bien 'PENDING'
+    if (verification.status !== 'PENDING') {
+      return res.status(400).json({ error: "This request has already been processed" });
+    }
+
+    // Mettre à jour la vérification
+    const updatedVerification = await prisma.verification.update({
+      where: { id: parseInt(id) },
+      data: { 
+        status: 'REJECTED',
+        reviewedAt: new Date(),
+        reviewedBy: req.user.id,
+        rejectionReason: reason || null
+      }
+    });
+
+    res.json({
+      message: "School verification rejected",
+      verification: updatedVerification
+    });
+
+  } catch (error) {
+    console.error("Reject school error:", error);
+    res.status(500).json({ error: "Failed to reject school verification" });
   }
 };

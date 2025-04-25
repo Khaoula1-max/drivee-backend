@@ -3,6 +3,7 @@ const router = express.Router();
 const controller = require('../controllers/verificationController');
 const multer = require('multer');
 const authMiddleware = require('../middlewares/authMiddleware');
+const roleMiddleware = require('../middlewares/roleMiddleware');
 
 // Multer configuration
 const upload = multer({
@@ -17,7 +18,7 @@ const upload = multer({
   }
 });
 
-// Routes
+// Routes existantes (conservées telles quelles)
 router.post(
   '/',
   authMiddleware,
@@ -30,6 +31,7 @@ router.get(
   authMiddleware,
   controller.getAllVerifications
 );
+
 router.get(
   '/status',
   authMiddleware,
@@ -42,7 +44,22 @@ router.get(
   controller.serveVerificationFile
 );
 
-// Error handling middleware
+// Nouvelles routes pour la vérification admin
+router.patch(
+  '/:id/verify',
+  authMiddleware,
+  roleMiddleware.isAdmin, // Protection admin seulement
+  controller.verifySchool
+);
+
+router.patch(
+  '/:id/reject',
+  authMiddleware,
+  roleMiddleware.isAdmin, // Protection admin seulement
+  controller.rejectSchool
+);
+
+// Error handling middleware (conservé tel quel)
 router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     return res.status(400).json({ error: err.message });
