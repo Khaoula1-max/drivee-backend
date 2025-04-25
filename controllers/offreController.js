@@ -1,134 +1,137 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+const CITIES = require('../utils/cityData');
+
 exports.createOffre = async (req, res) => {
-  console.log('Début de la création d\'offre');
-  console.log('Données reçues:', req.body);
-  console.log('Utilisateur authentifié:', req.user?.id);
+  console.log('Début de création d\'offre', { 
+    body: req.body, 
+    user: { id: req.user.id, role: req.user.role } 
+  });
 
   try {
-    const { 
-      title, 
-      description, 
-      price, 
-      durationHours, 
-      startDate, 
-      endDate, 
-      city, 
-      address 
-    } = req.body;
+    // 1. Extraction et validation des données
+    let { title, description, price, durationHours, city, address, startDate, endDate, location } = req.body;
+    const schoolId = req.user.id;
 
-    console.log('Validation des champs requis...');
-    if (!title || !description || !price || !durationHours || !startDate || !endDate || !city || !address) {
-      console.error('Champs manquants:', {
-        title: !title,
-        description: !description,
-        price: !price,
-        durationHours: !durationHours,
-        startDate: !startDate,
-        endDate: !endDate,
-        city: !city,
-        address: !address
-      });
+    // Gestion des données imbriquées dans l'objet location
+    if (location) {
+      city = city || location.city;
+      address = address || location.address;
+    }
+
+    // 2. Validation complète
+    const requiredFields = { title, city, address };
+    const missingFields = Object.entries(requiredFields)
+      .filter(([_, value]) => !value)
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+      console.error('Champs requis manquants:', missingFields);
       return res.status(400).json({ 
-        error: "Tous les champs sont requis, y compris la ville et l'adresse",
-        details: {
-          missingFields: {
-            title: !title,
-            description: !description,
-            price: !price,
-            durationHours: !durationHours,
-            startDate: !startDate,
-            endDate: !endDate,
-            city: !city,
-            address: !address
+        error: "Champs obligatoires manquants",
+        missingFields,
+        receivedData: { title, city, address }
+      });
+    }
+
+    // 3. Validation de la ville
+    if (!CITIES.some(c => c.value === city)) {
+      return res.status(400).json({ 
+        error: "Ville non valide",
+        validCities: CITIES.map(c => c.value)
+      });
+    }
+
+    // 4. Validation des types
+    if (price && isNaN(Number(price))) {
+      return res.status(400).json({ error: "Le prix doit être un nombre" });
+    }
+
+    if (durationHours && isNaN(Number(durationHours))) {
+      return res.status(400).json({ error: "La durée doit être un nombre" });
+    }
+
+    // 5. Création de la location
+    console.log('Création de la location avec:', { city, address });
+    const newLocation = await prisma.location.create({
+      data: { 
+        city: city.trim(), 
+        address: address.trim() 
+      }
+    });
+
+    // 6. Préparation des dates
+    const now = new Date();
+    const defaultEndDate = new Date(now.getTime() + 86400000); // +1 jour
+
+    // 7. Création de l'offre
+    const offerData = {
+      title: title.trim(),
+      description: description?.trim() || "",
+      price: price ? Number(price) : 0,
+      durationHours: durationHours ? Number(durationHours) : 1,
+      schoolId,
+      locationId: newLocation.id,
+      startDate: startDate ? new Date(startDate) : now,
+      endDate: endDate ? new Date(endDate) : defaultEndDate
+    };
+
+    console.log('Création de l\'offre avec:', offerData);
+    const newOffre = await prisma.offre.create({
+      data: offerData,
+      include: { 
+        location: true,
+        school: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true
           }
         }
-      });
-    }
-
-    console.log('Création de la localisation...');
-    const location = await prisma.location.create({
-      data: {
-        city: city,
-        address: address
       }
     });
-    console.log('Location créée:', location);
 
-    console.log('Préparation des données pour l\'offre:', {
-      title,
-      description,
-      price: parseFloat(price),
-      durationHours: parseInt(durationHours),
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      schoolId: req.user.id,
-      locationId: location.id
-    });
-
-    const newOffre = await prisma.offre.create({
-      data: {
-        title,
-        description,
-        price: parseFloat(price),
-        durationHours: parseInt(durationHours),
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        schoolId: req.user.id, 
-        locationId: location.id,
-      },
-      include: {
-        location: true
+    // 8. Réponse formatée
+    const response = {
+      ...newOffre,
+      schoolName: `${newOffre.school.firstName} ${newOffre.school.lastName}`,
+      contact: {
+        email: newOffre.school.email,
+        phone: newOffre.school.phone
       }
-    });
+    };
+
+    // Suppression des données sensibles
+    delete response.school;
     
-    console.log('Offre créée avec succès:', newOffre);
-    res.status(201).json(newOffre);
+    console.log('Offre créée avec succès:', response);
+    return res.status(201).json(response);
 
   } catch (error) {
-    console.error("\nERREUR DÉTAILLÉE:");
-    console.error('Message:', error.message);
-    console.error('Code:', error.code);
-    console.error('Meta:', error.meta);
-    console.error('Stack:', error.stack);
-    
-    if (error.code === 'P2002') {
-      console.error('Erreur de contrainte unique (violation de clé unique)');
-      const errorDetails = {
-        code: error.code,
-        target: error.meta?.target
-      };
-      return res.status(400).json({ 
-        error: "Violation de contrainte unique",
-        details: errorDetails
-      });
-    }
-
-    if (error.code === 'P2025') {
-      console.error('Enregistrement requis introuvable');
-      return res.status(400).json({ 
-        error: "Enregistrement requis introuvable",
-        details: error.meta
-      });
-    }
-
-    console.error('Type d\'erreur:', typeof error);
-    res.status(400).json({ 
-      error: "Erreur lors de la création de l'offre",
-      details: {
-        message: error.message,
-        code: error.code,
-        ...(process.env.NODE_ENV === 'development' && {
-          stack: error.stack,
-          fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
-        })
-      }
+    console.error("Erreur complète:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+      user: req.user
     });
-  } finally {
-    console.log('Fin du processus de création d\'offre\n');
+
+    // Gestion spécifique des erreurs Prisma
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: "Une offre ou localisation similaire existe déjà" });
+    }
+
+    res.status(500).json({ 
+      error: "Erreur serveur",
+      ...(process.env.NODE_ENV === 'development' && {
+        details: error.message,
+        stack: error.stack
+      })
+    });
   }
 };
+
 exports.getAllOffres = async (req, res) => {
   try {
 const offres = await prisma.offre.findMany({
