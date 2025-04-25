@@ -1,94 +1,80 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Créer une réservation (pour étudiants)
+//nsoubo rservation
 exports.createReservation = async (req, res) => {
   try {
-    const { offreId, startDate, status, paymentStatus } = req.body;
-
-    const reservation = await prisma.reservation.create({
-      data: {
-        studentId: req.user.id, 
-        schoolId: req.body.schoolId, 
-        offreId,
-        startDate: new Date(startDate),
-        status: status || 'pending',
-        paymentStatus: paymentStatus || 'unpaid',
-      },
-    });
-    res.status(201).json(reservation);
+const { offreId, startDate, status, paymentStatus } = req.body;
+const reservation = await prisma.reservation.create({
+  data: {
+  studentId: req.user.id, 
+  schoolId: req.body.schoolId, 
+   offreId,
+  startDate: new Date(startDate),
+   status: status || 'pending',
+   paymentStatus: paymentStatus || 'unpaid',
+  },
+  });
+  res.status(201).json(reservation);
   } catch (error) {
-    res.status(400).json({ error: "Erreur lors de la création" });
-  }
-};
+  res.status(400).json({ error: "Erreur lors de la création" });
+  }};
 
-// Lister les réservations d'un étudiant
+// nchufo gae les resrvation
 exports.getUserReservations = async (req, res) => {
-  try {
-    const reservations = await prisma.reservation.findMany({
-      where: { studentId: req.user.id },
-      include: {
-        offre: true,
-        school: true
-      }
-    });
-    res.json(reservations);
+try {
+  const reservations = await prisma.reservation.findMany({
+  where: { studentId: req.user.id },
+  include: {
+  offre: true,
+  school: true
+  }});
+  res.json(reservations);
   } catch (error) {
-    res.status(500).json({ error: "Server error" });
-  }
-};
-
+  res.status(500).json({ error: "Server error" });
+  }};
 exports.getSchoolReservations = async (req, res) => {
   try {
     const reservations = await prisma.reservation.findMany({
-      where: { 
-        schoolId: req.user.id 
-      },
-      include: {
-        student: true,
-        offre: true,
-        school: true
-      },
-      orderBy: {
-        reservationDate: 'desc'
-      }
-    });
-    res.json(reservations);
+  where: { 
+   schoolId: req.user.id 
+  },
+  include: {
+  student: true,
+  offre: true,
+  school: true},
+ orderBy: {
+  reservationDate: 'desc'}
+  });
+  res.json(reservations);
   } catch (error) {
-    console.error('Error fetching reservations:', error);
-    res.status(500).json({ error: "Server error" });
+  console.error('Error fetching reservations:', error);
+  res.status(500).json({ error: "Server error" });
   }
 };
-
 exports.getAllReservations = async (req, res) => {
   try {
     const reservations = await prisma.reservation.findMany({
-      include: {
-        student: {
-          select: {
-            firstName: true,
-            email: true
-          }
-        },
-        school: {
-          select: {
-            firstName: true
-          }
-        },
-        offre: {
-          select: {
-            title: true,
-            price: true
-          }
-        }
-      },
-      orderBy: {
-        reservationDate: 'desc' 
+  include: {
+  student: {
+  select: {
+  firstName: true,
+   email: true}},
+  school: {
+  select: {
+  firstName: true }},
+  offre: {
+ select: {
+  title: true,
+  price: true}
+  }},
+  orderBy: {
+   reservationDate: 'desc' 
       }
-    });
+  });
     res.json(reservations);
   } catch (error) {
-    console.error('Error fetching reservations:', error);
+  console.error('Error fetching reservations:', error);
     res.status(500).json({ error: "Server error" });
   }
 };
