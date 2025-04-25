@@ -515,9 +515,12 @@ exports.deleteUser  = async (req, res) => {
     id: true,
     firstName: true,
     lastName: true,
+    email: true,
+    phone: true,
     role: true,
    createdAt: true,
    updatedAt: true,
+   address: true,
    address: true  },
   orderBy: { createdAt: 'desc'}
         });
