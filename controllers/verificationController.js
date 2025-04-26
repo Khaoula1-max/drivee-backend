@@ -160,35 +160,13 @@ exports.serveVerificationFile = async (req, res) => {
     res.status(500).json({ error: "Failed to retrieve file" });
   }
 };
-
-// Nouveaux contrôleurs à ajouter
-exports.verifySchool = async (req, res) => {
+// À ajouter dans votre controller
+exports.approveVerification = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { verificationId } = req.params;
     
-    console.log("[School Verification] Début de vérification pour ID:", id, 
-                "Effectué par l'utilisateur:", req.user?.id);
-
-    const verification = await prisma.verification.findUnique({
-      where: { id: id },
-      include: { user: true }
-    });
-
-    if (!verification) {
-      console.error("[School Verification] ERREUR: Aucune vérification trouvée pour ID:", id);
-      return res.status(404).json({ error: "Demande de vérification non trouvée" });
-    }
-
-    console.log("[School Verification] Statut actuel:", verification.status, 
-                "User ID associé:", verification.userId);
-
-    if (verification.status !== 'PENDING') {
-      console.warn("[School Verification] AVERTISSEMENT: Demande déjà traitée. Statut:", verification.status);
-      return res.status(400).json({ error: "Cette demande a déjà été traitée" });
-    }
-
-    const updatedVerification = await prisma.verification.update({
-      where: { id: id },
+    const verification = await prisma.verification.update({
+      where: { id: verificationId },
       data: { 
         status: 'APPROVED',
         reviewedAt: new Date(),
@@ -196,92 +174,29 @@ exports.verifySchool = async (req, res) => {
       }
     });
 
-    console.log("[School Verification] Vérification mise à jour:", updatedVerification.id);
-
-    await prisma.user.update({
-      where: { id: verification.userId },
-      data: { 
-        isVerified: true,
-        verifiedAt: new Date()
-      }
-    });
-
-    console.log("[School Verification] Utilisateur vérifié avec succès:", verification.userId);
-
-    res.json({
-      message: "École vérifiée avec succès",
-      verification: updatedVerification
-    });
-
+    res.json({ message: "Verification approved", verification });
   } catch (error) {
-    console.error("[School Verification] ERREUR CRITIQUE:", {
-      timestamp: new Date().toISOString(),
-      error: error.message,
-      stack: error.stack,
-      verificationId: req.params.id,
-      userId: req.user?.id
-    });
-    res.status(500).json({ 
-      error: "Échec de la vérification",
-      details: process.env.NODE_ENV === 'development' ? error.message : "Erreur interne"
-    });
+    res.status(500).json({ error: "Approval failed" });
   }
 };
-exports.rejectSchool = async (req, res) => {
+// À ajouter dans votre controller
+exports.rejectVerification = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { verificationId } = req.params;
     const { reason } = req.body;
-
-    console.log("[School Rejection] Début de rejet pour ID:", id, 
-                "Raison:", reason, 
-                "Effectué par:", req.user?.id);
-
-    const verification = await prisma.verification.findUnique({
-      where: { id: id }
-    });
-
-    if (!verification) {
-      console.error("[School Rejection] ERREUR: Aucune vérification trouvée pour ID:", id);
-      return res.status(404).json({ error: "Demande de vérification non trouvée" });
-    }
-
-    console.log("[School Rejection] Statut actuel:", verification.status);
-
-    if (verification.status !== 'PENDING') {
-      console.warn("[School Rejection] AVERTISSEMENT: Demande déjà traitée. Statut:", verification.status);
-      return res.status(400).json({ error: "Cette demande a déjà été traitée" });
-    }
-
-    const updatedVerification = await prisma.verification.update({
-      where: { id: id },
+    
+    const verification = await prisma.verification.update({
+      where: { id: verificationId },
       data: { 
         status: 'REJECTED',
+        rejectionReason: reason,
         reviewedAt: new Date(),
-        reviewedBy: req.user.id,
-        rejectionReason: reason || "Non spécifiée"
+        reviewedBy: req.user.id 
       }
     });
 
-    console.log("[School Rejection] Rejet effectué avec succès pour ID:", id, 
-                "Nouveau statut:", updatedVerification.status);
-
-    res.json({
-      message: "Vérification d'école rejetée",
-      verification: updatedVerification
-    });
-
+    res.json({ message: "Verification rejected", verification });
   } catch (error) {
-    console.error("[School Rejection] ERREUR CRITIQUE:", {
-      timestamp: new Date().toISOString(),
-      error: error.message,
-      stack: error.stack,
-      verificationId: req.params.id,
-      reason: req.body.reason,
-      userId: req.user?.id
-    });
-    res.status(500).json({ 
-      error: "Échec du rejet de la vérification",
-      details: process.env.NODE_ENV === 'development' ? error.message : "Erreur interne"
-    });
+    res.status(500).json({ error: "Rejection failed" });
   }
 };

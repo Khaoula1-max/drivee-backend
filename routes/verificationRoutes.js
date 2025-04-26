@@ -28,7 +28,7 @@ router.post(
 
 router.get(
   '/',
-  authMiddleware,
+  authMiddleware,roleMiddleware.isAdmin,
   controller.getAllVerifications
 );
 
@@ -43,21 +43,10 @@ router.get(
   authMiddleware,
   controller.serveVerificationFile
 );
+// À ajouter dans vos routes
+router.patch('/:id/approve', authMiddleware, roleMiddleware.isAdmin, controller.approveVerification);
+router.patch('/:id/reject', authMiddleware, roleMiddleware.isAdmin, controller.rejectVerification);
 
-// Nouvelles routes pour la vérification admin
-router.patch(
-  '/:id/verify',
-  authMiddleware,
-  roleMiddleware.isAdmin, // Protection admin seulement
-  controller.verifySchool
-);
-
-router.patch(
-  '/:id/reject',
-  authMiddleware,
-  roleMiddleware.isAdmin, // Protection admin seulement
-  controller.rejectSchool
-);
 
 // Error handling middleware (conservé tel quel)
 router.use((err, req, res, next) => {
