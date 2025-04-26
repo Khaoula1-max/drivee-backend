@@ -277,20 +277,46 @@ res.status(500).json({error: "Server error",details: process.env.NODE_ENV === 'd
 });
   }
 };
-exports.getOffresBySchool = async (req, res) => {
+// Récupère les offres de l'école actuellement connectée
+exports.getMySchoolOffers = async (req, res) => {
   try {
-const { schoolId } = req.params;
-const offres = await prisma.offre.findMany({
-where: { 
-schoolId: schoolId 
- },
-include: {school: {select: { firstName: true, lastName: true}},location: true},
-orderBy:{createdAt: 'desc'}});
-const response = offres.map(offre => ({...offre,schoolName: `${offre.school.firstName} ${offre.school.lastName}`,city: offre.location.city,address: offre.location.address
+    // Vérifier que l'utilisateur est bien une école
+    if (req.user.role !== 'SCHOOL') {
+      return res.status(403).json({ error: "Accès réservé aux écoles" });
+    }
+
+    const offres = await prisma.offre.findMany({
+      where: { 
+        schoolId: req.user.id // Utilise l'ID de l'école connectée
+      },
+      include: {
+        school: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        },
+        location: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // Formater la réponse comme vos autres endpoints
+    const formattedOffers = offres.map(offre => ({
+      ...offre,
+      schoolName: `${offre.school.firstName} ${offre.school.lastName}`,
+      city: offre.location.city,
+      address: offre.location.address
     }));
-res.json(response);}  
-catch (error) {console.error("Error fetching school offers:", error);
-res.status(500).json({ rror: "Server error",details: process.env.NODE_ENV === 'development' ? error.message : undefined
-   });
+
+    res.json(formattedOffers);
+  } catch (error) {
+    console.error("Error fetching my school offers:", error);
+    res.status(500).json({ 
+      error: "Erreur serveur",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };

@@ -15,3 +15,12 @@ exports.isAdmin = (req, res, next) => {
         return res.status(403).json({ message: "Réservé à l'admin." });
     next();
 };
+exports.verifySchoolAccess = (req, res, next) => {
+    // Seul l'admin peut vérifier/rejeter les écoles
+    if (req.user.role !== "ADMIN") {
+        return res.status(403).json({ 
+            message: "Action non autorisée. Seul l'administrateur peut effectuer cette action." 
+        });
+    }
+    next();
+};
