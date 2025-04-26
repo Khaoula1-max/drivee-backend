@@ -82,7 +82,6 @@ model Verification {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   userId      String   @db.ObjectId
   schoolName  String
-  
   proof       String   // Chemin du fichier
   status      String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
   reviewedBy  String?  @db.ObjectId // ID admin
