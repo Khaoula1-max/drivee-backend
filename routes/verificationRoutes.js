@@ -18,7 +18,7 @@ const upload = multer({
   }
 });
 
-// Routes existantes (conservées telles quelles)
+// Routes existantes 
 router.post(
   '/',
   authMiddleware,
@@ -47,7 +47,11 @@ router.get(
 router.patch('/:id/approve', authMiddleware, roleMiddleware.isAdmin, controller.approveVerification);
 router.patch('/:id/reject', authMiddleware, roleMiddleware.isAdmin, controller.rejectVerification);
 
-
+router.get(
+  '/user/:userId',
+  authMiddleware,
+  controller.getUserVerification
+);
 // Error handling middleware (conservé tel quel)
 router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {

@@ -29,6 +29,7 @@ model User {
   dateOfBirth   DateTime?
   address       String?
   role          UserRole
+   payments      Payment[]
   driverLicense   Boolean @default(false) // New field for driver's licens
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -76,6 +77,7 @@ model Reservation {
   school          User     @relation("SchoolReservations", fields: [schoolId], references: [id])
   offre           Offre    @relation(fields: [offreId], references: [id])
    reviewedAt DateTime? @map("reviewed_at")
+     payments   Payment[]
 }
 
 model Verification {
@@ -118,12 +120,18 @@ enum City {
   INZEGANE
 }
 model Payment {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @db.ObjectId
-  amount      Float    // Montant du paiement
-  paymentDate DateTime @default(now()) // Date du paiement
-  status      String   // Statut du paiement (ex: "completed", "pending", "failed")
-  method      String   // Méthode de paiement (ex: "credit_card", "paypal", etc.)
-  createdAt   DateTime @default(now())
- 
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String     @db.ObjectId
+  reservationId String     @db.ObjectId
+  amount        Float
+  currency      String     @default("MAD")
+  stripePaymentId String
+  status        String     @default("pending")
+  createdAt     DateTime   @default(now())
+  
+  // Relation avec User
+  user        User        @relation(fields: [userId], references: [id])
+  
+  // Relation avec Reservation
+  reservation Reservation @relation(fields: [reservationId], references: [id])
 }

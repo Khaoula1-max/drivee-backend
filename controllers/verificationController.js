@@ -3,6 +3,7 @@ const prisma = new PrismaClient();
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
+const emailService = require('../emailService');
 
 // Config
 const UPLOAD_DIR = path.join(__dirname, '../../uploads/verifications');
@@ -163,40 +164,126 @@ exports.serveVerificationFile = async (req, res) => {
 // À ajouter dans votre controller
 exports.approveVerification = async (req, res) => {
   try {
-    const { verificationId } = req.params;
+    const { id } = req.params;
     
+    // Update verification status
     const verification = await prisma.verification.update({
-      where: { id: verificationId },
+      where: { id },
       data: { 
         status: 'APPROVED',
-        reviewedAt: new Date(),
+        // reviewedAt: new Date(),
         reviewedBy: req.user.id 
+      },
+      include: {
+        user: true
       }
     });
 
-    res.json({ message: "Verification approved", verification });
+    // Update user role if needed (optional)
+    await prisma.user.update({
+      where: { id: verification.userId },
+      data: { 
+        role: 'SCHOOL',
+        firstName: verification.schoolName // Optionally store school name
+      }
+    });
+  // Envoyer l'email d'approbation
+  try {
+    await emailService.sendApprovalEmail(verification.user.email, verification.schoolName);
+  } catch (emailError) {
+    console.error("Failed to send approval email:", emailError);
+  }
+    res.json({ 
+      success: true,
+      message: "Verification approved successfully",
+      verification 
+    });
   } catch (error) {
-    res.status(500).json({ error: "Approval failed" });
+    console.error("Approval error:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to approve verification" 
+    });
   }
 };
-// À ajouter dans votre controller
+
 exports.rejectVerification = async (req, res) => {
   try {
-    const { verificationId } = req.params;
-    const { reason } = req.body;
+    const { id } = req.params;
     
+    // 1. Récupérer d'abord la vérification pour vérifier l'utilisateur
+    const existingVerification = await prisma.verification.findUnique({
+      where: { id },
+      include: { user: { select: { email: true } } }
+    });
+
+    if (!existingVerification) {
+      return res.status(404).json({ error: "Verification not found" });
+    }
+
+    if (!existingVerification.user?.email) {
+      return res.status(400).json({ error: "User email not available" });
+    }
+
+    // 2. Mettre à jour la vérification
     const verification = await prisma.verification.update({
-      where: { id: verificationId },
+      where: { id },
       data: { 
         status: 'REJECTED',
-        rejectionReason: reason,
-        reviewedAt: new Date(),
+        //reviewedAt: new Date(),
         reviewedBy: req.user.id 
       }
     });
 
-    res.json({ message: "Verification rejected", verification });
+    // 3. Envoyer l'email
+    try {
+      await emailService.sendRejectionEmail(
+        existingVerification.user.email,
+        verification.schoolName
+      );
+    } catch (emailError) {
+      console.error("Email error:", emailError);
+    }
+
+    res.json({ 
+      success: true,
+      message: "Verification rejected",
+      verification
+    });
+
   } catch (error) {
-    res.status(500).json({ error: "Rejection failed" });
+    console.error("Reject error:", error);
+    res.status(500).json({ 
+      error: "Rejection failed",
+      details: error.message 
+    });
+  }
+};
+exports.getUserVerification = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const verification = await prisma.verification.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!verification) {
+      return res.status(404).json({
+        success: false,
+        message: "No verification found for this user"
+      });
+    }
+
+    res.json({
+      success: true,
+      verification
+    });
+  } catch (error) {
+    console.error("Get user verification error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch user verification"
+    });
   }
 };
