@@ -340,7 +340,7 @@ exports.forgotPassword = async (req, res) => {
     expiresAt: resetTokenExpiry,
  },
     });
-  const resetLink = `https://yourapp.com/reset-password?token=${resetToken}`;
+  const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
     await transporter.sendMail({
     to: email,
      subject: 'Réinitialisation du mot de passe',

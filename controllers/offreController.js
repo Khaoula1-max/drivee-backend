@@ -299,7 +299,7 @@ exports.getMySchoolOffers = async (req, res) => {
         location: true
       },
       orderBy: {
-        createdAt: 'desc'
+        //createdAt: 'desc'
       }
     });
 

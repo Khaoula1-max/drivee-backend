@@ -12,7 +12,7 @@ const reservationRoutes = require('./routes/reservationRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const locationRoutes = require('./routes/locationRoutes');
-
+const paymentRoutes = require('./routes/paymentRoutes');
 
 
 // Create an Express application
@@ -46,6 +46,7 @@ app.use('/reservations', authMiddleware, reservationRoutes);
 app.use('/verifications', authMiddleware, verificationRoutes);
 app.use('/reviews', authMiddleware, reviewRoutes);
 app.use('/locations', locationRoutes);
+app.use('/payments', paymentRoutes); // Payment routes
 
 
 // Static files (for uploaded documents)
