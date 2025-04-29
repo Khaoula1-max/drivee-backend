@@ -24,5 +24,4 @@ router.post(
   controller.handleWebhook
 );
 
-
 module.exports = router;
