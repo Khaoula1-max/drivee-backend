@@ -2,6 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
+// controllers/paymentController.js
 exports.createPaymentIntent = async (req, res) => {
   try {
     const { reservationId } = req.body;
@@ -20,26 +21,35 @@ exports.createPaymentIntent = async (req, res) => {
       return res.status(403).json({ error: "Not your reservation" });
     }
 
-    // Créer un PaymentIntent avec Stripe
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(reservation.offre.price * 100), // Stripe utilise des centimes
+    // Simuler un PaymentIntent (pas de Stripe en mode test)
+    const mockPaymentIntent = {
+      id: `mock_pi_${Math.random().toString(36).substr(2, 10)}`,
+      client_secret: `mock_client_secret_${Math.random().toString(36).substr(2, 20)}`,
+      amount: Math.round(reservation.offre.price * 100),
       currency: 'mad',
-      metadata: { reservationId }
-    });
+      status: 'succeeded'
+    };
 
-    // Enregistrer le paiement en base de données
+    // Enregistrer le paiement en base de données comme réussi
     await prisma.payment.create({
       data: {
         userId: req.user.id,
         reservationId,
         amount: reservation.offre.price,
-        stripePaymentId: paymentIntent.id,
-        status: 'pending'
+        stripePaymentId: mockPaymentIntent.id,
+        status: 'succeeded'
       }
     });
 
+    // Mettre à jour le statut de la réservation
+    await prisma.reservation.update({
+      where: { id: reservationId },
+      data: { paymentStatus: 'paid' }
+    });
+
     res.json({
-      clientSecret: paymentIntent.client_secret
+      clientSecret: mockPaymentIntent.client_secret,
+      mockPayment: true // Ajouter un flag pour indiquer que c'est un mock
     });
 
   } catch (error) {
